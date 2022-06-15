@@ -1,0 +1,12 @@
+[package]
+name = "libstuhfl"
+version = "0.1.0"
+authors = [ "Nathan Rowan <rvanathanrowan@gmail.com>" ]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ffi = { package = "libstuhfl-sys", version = "0.1.0", path = "../libstuhfl-sys" }
+enum_primitive = "*"
+num = "*"
