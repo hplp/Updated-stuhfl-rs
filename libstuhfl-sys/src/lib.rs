@@ -10,6 +10,9 @@ include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 // Tests that actually use the reader
 
+mod initializers;
+pub use initializers::*;
+
 #[cfg(unix)]
 #[cfg(test)]
 mod tests {

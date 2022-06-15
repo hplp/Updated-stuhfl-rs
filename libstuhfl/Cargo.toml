@@ -10,3 +10,6 @@ edition = "2021"
 ffi = { package = "libstuhfl-sys", version = "0.1.0", path = "../libstuhfl-sys" }
 enum_primitive = "*"
 num = "*"
+
+[dev-dependencies]
+serial_test = "*"
