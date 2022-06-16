@@ -47,28 +47,13 @@ pub fn setup_gen2_config(reader: &mut ST25RU3993, single_tag: bool, freq_hopping
 
     unsafe {
         // Apply reader settings and check for errors along the way
-        let mut ret;
-
-        ret = ffi::Set_TxRxCfg(&mut tx_rx_cfg);
-        if ret != ffi::STUHFL_ERR_NONE {return Err(Error::from_u32(ret).unwrap())};
-
-        ret = ffi::Set_Gen2_InventoryCfg(&mut inv_gen2_cfg);
-        if ret != ffi::STUHFL_ERR_NONE {return Err(Error::from_u32(ret).unwrap())};
-
-        ret = ffi::Set_Gen2_ProtocolCfg(&mut gen2_protocol_cfg);
-        if ret != ffi::STUHFL_ERR_NONE {return Err(Error::from_u32(ret).unwrap())};
-        
-        ret = ffi::Set_FreqLBT(&mut freq_lbt);
-        if ret != ffi::STUHFL_ERR_NONE {return Err(Error::from_u32(ret).unwrap())};
-
-        ret = ffi::Set_ChannelList(&mut channel_list);
-        if ret != ffi::STUHFL_ERR_NONE {return Err(Error::from_u32(ret).unwrap())};
-
-        ret = ffi::Set_FreqHop(&mut freq_hop);
-        if ret != ffi::STUHFL_ERR_NONE {return Err(Error::from_u32(ret).unwrap())};
-
-        ret = ffi::Gen2_Select(&mut gen2_select);
-        if ret != ffi::STUHFL_ERR_NONE {return Err(Error::from_u32(ret).unwrap())};
+        proc_err(ffi::Set_TxRxCfg(&mut tx_rx_cfg))?;
+        proc_err(ffi::Set_Gen2_InventoryCfg(&mut inv_gen2_cfg))?;
+        proc_err(ffi::Set_Gen2_ProtocolCfg(&mut gen2_protocol_cfg))?;
+        proc_err(ffi::Set_FreqLBT(&mut freq_lbt))?;
+        proc_err(ffi::Set_ChannelList(&mut channel_list))?;
+        proc_err(ffi::Set_FreqHop(&mut freq_hop))?;
+        proc_err(ffi::Gen2_Select(&mut gen2_select))?;
 
         // tune the reader frequencies
         match reader.tune_freqs(TuningAlgorithm::Exact) {

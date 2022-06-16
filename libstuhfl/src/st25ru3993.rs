@@ -39,8 +39,6 @@ impl ST25RU3993 {
     }
 
     pub fn get_board_version(&self) -> Result<Version, Error> {
-        let mut ret;
-
         unsafe {
             // create structs to be filled by function
             let mut sw_ver: ffi::STUHFL_T_Version = mem::zeroed();
@@ -48,11 +46,8 @@ impl ST25RU3993 {
             let mut sw_info: ffi::STUHFL_T_VersionInfo = mem::zeroed();
             let mut hw_info: ffi::STUHFL_T_VersionInfo = mem::zeroed();
             // attempt to get board version
-            ret = ffi::Get_BoardVersion(&mut sw_ver, &mut hw_ver);
-            if ret != ffi::STUHFL_ERR_NONE {return Err(Error::from_u32(ret).unwrap())};
-
-            ret = ffi::Get_BoardInfo(&mut sw_info, &mut hw_info);
-            if ret != ffi::STUHFL_ERR_NONE {return Err(Error::from_u32(ret).unwrap())};
+            proc_err(ffi::Get_BoardVersion(&mut sw_ver, &mut hw_ver))?;
+            proc_err(ffi::Get_BoardInfo(&mut sw_info, &mut hw_info))?;
 
             // move structs to safe memory
             let sw_ver = VersionNum::from(sw_ver);
@@ -85,10 +80,9 @@ impl ST25RU3993 {
             nano: 0
         };
 
-        match self.get_board_version() {
-            Ok(ver) => Ok(ver.sw_ver >= LOWEST_SW_VER && ver.hw_ver >= LOWEST_HW_VER),
-            Err(e) => Err(e)
-        }
+        let ver = self.get_board_version()?;
+
+        Ok(ver.sw_ver >= LOWEST_SW_VER && ver.hw_ver >= LOWEST_HW_VER)
     }
 
     fn tune_freqs(&mut self, algo: TuningAlgorithm) -> Result<(), Error> {
@@ -97,30 +91,23 @@ impl ST25RU3993 {
         }
 
         unsafe {
-            let mut ret;
-
             let mut tx_rx_cfg = ffi::STUHFL_T_ST25RU3993_TxRxCfg::default();
 
-            ret = ffi::Get_TxRxCfg(&mut tx_rx_cfg);
-            if ret != ffi::STUHFL_ERR_NONE {return Err(Error::from_u32(ret).unwrap())};
+            proc_err(ffi::Get_TxRxCfg(&mut tx_rx_cfg))?;
 
             let mut tune_cfg = ffi::STUHFL_T_ST25RU3993_TuneCfg::default();
             tune_cfg.antenna = tx_rx_cfg.usedAntenna;
             tune_cfg.algorithm = algo as u8;
             tune_cfg.tuneAll = true;
             
-            ret = ffi::TuneChannel(&mut tune_cfg);
-            if ret != ffi::STUHFL_ERR_NONE {return Err(Error::from_u32(ret).unwrap())};
+            proc_err(ffi::TuneChannel(&mut tune_cfg))?;
         }
 
         Ok(())
     }
 
     pub fn setup_gen2_config(&mut self, single_tag: bool, freq_hopping: bool, antenna: Antenna) -> Result<(), Error> {
-        match gen2::setup_gen2_config(self, single_tag, freq_hopping, antenna) {
-            Ok(_) => {}
-            Err(e) => return Err(e)
-        }
+        gen2::setup_gen2_config(self, single_tag, freq_hopping, antenna)?;
 
         // Reader successfully set up gen2 configuration
         self.protocol = Some(Protocol::Gen2);
@@ -132,12 +119,7 @@ impl Drop for ST25RU3993 {
     fn drop(&mut self) {
         unsafe {
             // close the connection to the reader
-            match ffi::Disconnect() {
-                ffi::STUHFL_ERR_NONE => {},
-                x => {
-                    eprintln!("Error while disconnecting from reader: {}", Error::from_u32(x).unwrap())
-                }
-            }
+            proc_err(ffi::Disconnect()).or_else(|e| eprintln!("Error While Disconnecting to Reader: {}", e));
         }
     }
 }

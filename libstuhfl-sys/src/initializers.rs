@@ -384,3 +384,52 @@ impl Default for STUHFL_T_ST25RU3993_TuneCfg {
         }
     }
 }
+
+impl Default for STUHFL_T_InventoryStatistics {
+    fn default() -> Self {
+        Self {
+            timestamp: 0,
+            roundCnt: 0,
+            tuningStatus: STUHFL_D_TUNING_STATUS_UNTUNED as u8,
+            rssiLogMean: 0,
+            sensitivity: 0,
+            Q: 0,
+            frequency: 0,
+            adc: 0,
+            tagCnt: 0,
+            emptySlotCnt: 0,
+            slotCnt: 0,
+            collisionCnt: 0,
+            preambleErrCnt: 0,
+            crcErrCnt: 0,
+            headerErrCnt: 0,
+            rxCountErrCnt: 0,
+            resendAckCnt: 0,
+            noiseSuspicionCnt: 0,
+        }
+    }
+}
+
+impl Default for STUHFL_T_InventoryData {
+    fn default() -> Self {
+        unsafe {
+            Self {
+                statistics: STUHFL_T_InventoryStatistics::default(),
+                tagList: std::mem::zeroed(),
+                tagListSize: 0,
+                tagListSizeMax: 0,
+            }
+        }
+    }
+}
+
+impl Default for STUHFL_T_InventoryOption {
+    fn default() -> Self {
+        Self {
+            rssiMode: STUHFL_D_RSSI_MODE_2NDBYTE as u8,
+            roundCnt: 0,
+            inventoryDelay: 0,
+            options: 0x00,
+        }
+    }
+}
