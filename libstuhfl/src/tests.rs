@@ -4,37 +4,92 @@ use st25ru3993::*;
 extern crate serial_test;
 use serial_test::*;
 
+extern crate serialport;
+use serialport as sp;
+
 #[cfg(unix)]
 #[test]
 #[serial]
-fn check_reader_version() {
-    let reader = ST25RU3993::new("/dev/ttyUSB0").expect("Couldn't connect to reader");
+fn check_reader_version() -> Result<(), Error> {
 
-    let version = reader.get_board_version().expect("Couldn't get version");
+    let mut found_port: Option<String> = None;
+    
+    if let Ok(ports) = sp::available_ports() {
+        for port in ports {
+            if let sp::SerialPortType::UsbPort(port_info) = port.port_type {
+                if port_info.vid == 0x403 && port_info.pid == 0x6015 {
+                    sp::new(&port.port_name, 9600).open().expect("Couldn't open port!");
+                    found_port = Some(port.port_name)
+                }
+            }
+        }
+    }
+    
+    let found_port = found_port.expect("Reader not found on any ports");
 
-    println!("Board version: {}", version);
+    println!("Found Port: {}", &found_port);
+
+    let reader = ST25RU3993::new(&found_port).expect("Couldn't connect to reader");
+
+    let version = reader.get_board_version().expect("Couldn't get reader version");
+
+    println!("Board version: {}", &version);
+
+    Ok(())
 }
 
 #[cfg(unix)]
 #[test]
 #[serial]
-fn gen2_configure() {
-    let mut reader = ST25RU3993::new("/dev/ttyUSB0").expect("Couldn't connect to reader");
+fn gen2_configure() -> Result<(), Error> {
 
-    reader.setup_gen2_config(false, true, Antenna::Antenna1).expect("Couldn't Configure Reader");
+    let mut found_port: Option<String> = None;
+    
+    if let Ok(ports) = sp::available_ports() {
+        for port in ports {
+            if let sp::SerialPortType::UsbPort(port_info) = port.port_type {
+                if port_info.vid == 0x403 && port_info.pid == 0x6015 {
+                    sp::new(&port.port_name, 9600).open().expect("Couldn't open port!");
+                    found_port = Some(port.port_name)
+                }
+            }
+        }
+    }
+    
+    let found_port = found_port.expect("Reader not found on any ports");
+
+    let mut reader = ST25RU3993::new(&found_port).expect("Couldn't connect to reader");
+
+    reader.setup_gen2_config(false, true, Antenna::Antenna1).expect("Couldn't configure reader");
+
+    Ok(())
 }
 
 #[cfg(unix)]
 #[test]
 #[serial]
-fn gen2_inventory() {
-    // connect reader
-    let mut reader = ST25RU3993::new("/dev/ttyUSB0").expect("Couldn't connect to reader");
+fn gen2_inventory() -> Result<(), Error> {
+
+    let mut found_port: Option<String> = None;
+    
+    if let Ok(ports) = sp::available_ports() {
+        for port in ports {
+            if let sp::SerialPortType::UsbPort(port_info) = port.port_type {
+                if port_info.vid == 0x403 && port_info.pid == 0x6015 {
+                    sp::new(&port.port_name, 9600).open().expect("Couldn't open port!");
+                    found_port = Some(port.port_name)
+                }
+            }
+        }
+    }
+    
+    let found_port = found_port.expect("Reader not found on any ports");
+
+    // connect to reader
+    let mut reader = ST25RU3993::new(&found_port).expect("Couldn't connect to reader");
 
     // setup gen2
-    reader.setup_gen2_config(false, true, Antenna::Antenna1).expect("Couldn't Configure Reader");
-
-    let mut ret;
+    reader.setup_gen2_config(false, true, Antenna::Antenna1).expect("Couldn't configure reader");
 
     unsafe {
         // tweak gen2 settings
@@ -44,8 +99,7 @@ fn gen2_inventory() {
         inv_gen2_cfg.queryParams.targetDepletionMode = false;
 
         // save gen2 settings
-        ret = ffi::Set_Gen2_InventoryCfg(&mut inv_gen2_cfg);
-        if ret != ffi::STUHFL_ERR_NONE { panic!("Error: {}", Error::from_u32(ret).unwrap()) };
+        proc_err(ffi::Set_Gen2_InventoryCfg(&mut inv_gen2_cfg))?;
 
         // create tag data storage location
         let mut tag_data: [ffi::STUHFL_T_InventoryTag; ffi::STUHFL_D_MAX_TAG_LIST_SIZE as usize] = std::mem::zeroed();
@@ -60,11 +114,12 @@ fn gen2_inventory() {
         inv_option.roundCnt = 2000;
         inv_option.options |= ffi::STUHFL_D_INVENTORYREPORT_OPTION_HEARTBEAT as u8;
 
-        ret = ffi::Gen2_Inventory(&mut inv_option, &mut inv_data);
-        if ret != ffi::STUHFL_ERR_NONE { panic!("Error: {}", Error::from_u32(ret).unwrap()) };
+        proc_err(ffi::Gen2_Inventory(&mut inv_option, &mut inv_data))?;
 
-        println!("Inventory Info:\n{:?}", inv_data);
+        println!("Inventory Info:\n{:#?}", inv_data);
 
         println!("Tag Info:\n{:?}", tag_data);
     }
+
+    Ok(())
 }

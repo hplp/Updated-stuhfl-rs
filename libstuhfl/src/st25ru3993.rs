@@ -16,7 +16,7 @@ impl ST25RU3993 {
     pub fn new(port: &str) -> Result<Self, Error> {
         unsafe {
             // Copy the port so that its "safe" from C
-            let mut port = String::from(port);
+            let mut port = port.to_owned();
 
             // Connect to board
             proc_err(ffi::Connect(port.as_mut_ptr() as _))?;
@@ -122,9 +122,7 @@ impl Drop for ST25RU3993 {
     fn drop(&mut self) {
         unsafe {
             // close the connection to the reader
-            if let Some(e) = proc_err(ffi::Disconnect()).err() {
-                eprintln!("Error While Disconnecting to Reader: {}", e);
-            }
+            proc_err(ffi::Disconnect()).unwrap();
         }
     }
 }

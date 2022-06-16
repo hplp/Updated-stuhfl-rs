@@ -13,3 +13,4 @@ num = "*"
 
 [dev-dependencies]
 serial_test = "*"
+serialport = "*"
