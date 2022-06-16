@@ -15,48 +15,51 @@ pub struct ST25RU3993 {
 impl ST25RU3993 {
     pub fn new(port: &str) -> Result<Self, Error> {
         unsafe {
-            // copy the port so that its safe from C
+            // Copy the port so that its "safe" from C
             let mut port = String::from(port);
-            match ffi::Connect(port.as_mut_ptr() as *mut i8) {
-                ffi::STUHFL_ERR_NONE => {
-                    // Wait so that board has time to connect
-                    std::thread::sleep(std::time::Duration::from_micros(600000));
-                    let board = ST25RU3993 {
-                        protocol: None,
-                    };
-                    match board.test_compatible() {
-                        Ok(true) => Ok(board),
-                        Ok(false) => {
-                            eprintln!("Warning: Incompatible Board or Library Version Detected. Please verify that your FW is up to date.");
-                            Err(Error::None)
-                        },
-                        Err(e) => Err(e)
-                    }
-                },
-                x => Err(Error::from_u32(x).unwrap())
+
+            // Connect to board
+            proc_err(ffi::Connect(port.as_mut_ptr() as _))?;
+            
+            // Wait so that board has time to connect
+            std::thread::sleep(std::time::Duration::from_micros(600000));
+
+            // Create object so we can test version
+            let board = ST25RU3993 {
+                protocol: None
+            };
+
+            // Test compatibility
+            if board.test_compatible()? {
+                Ok(board)
+            } else {
+                eprintln!("Warning: Incompatible Board or Library Version Detected. Please verify that your FW is up to date.");
+                Err(Error::None)
             }
         }
     }
 
     pub fn get_board_version(&self) -> Result<Version, Error> {
         unsafe {
-            // create structs to be filled by function
+            // Create structs to be filled by function
             let mut sw_ver: ffi::STUHFL_T_Version = mem::zeroed();
             let mut hw_ver: ffi::STUHFL_T_Version = mem::zeroed();
             let mut sw_info: ffi::STUHFL_T_VersionInfo = mem::zeroed();
             let mut hw_info: ffi::STUHFL_T_VersionInfo = mem::zeroed();
-            // attempt to get board version
+
+            // Attempt to get board version
             proc_err(ffi::Get_BoardVersion(&mut sw_ver, &mut hw_ver))?;
             proc_err(ffi::Get_BoardInfo(&mut sw_info, &mut hw_info))?;
 
-            // move structs to safe memory
+            // Move structs to safe memory
             let sw_ver = VersionNum::from(sw_ver);
             let hw_ver = VersionNum::from(hw_ver);
-            // recreate info as a Rust safe string
+
+            // Recreate info as a "Rust safe" string
             let sw_info: String = std::ffi::CStr::from_ptr(&sw_info.info as *const _).to_string_lossy().to_string();
             let hw_info: String = std::ffi::CStr::from_ptr(&hw_info.info as *const _).to_string_lossy().to_string();
             
-            // return safe version
+            // Return safe version
             Ok(Version {
                 sw_ver: sw_ver,
                 hw_ver: hw_ver,
@@ -66,7 +69,7 @@ impl ST25RU3993 {
         }
     }
 
-    pub fn test_compatible(&self) -> Result<bool, Error> {
+    fn test_compatible(&self) -> Result<bool, Error> {
         const LOWEST_SW_VER: VersionNum = VersionNum {
             major: 3,
             minor: 1,
