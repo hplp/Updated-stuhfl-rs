@@ -122,7 +122,9 @@ impl Drop for ST25RU3993 {
     fn drop(&mut self) {
         unsafe {
             // close the connection to the reader
-            proc_err(ffi::Disconnect()).or_else(|e| eprintln!("Error While Disconnecting to Reader: {}", e));
+            if let Some(e) = proc_err(ffi::Disconnect()).err() {
+                eprintln!("Error While Disconnecting to Reader: {}", e);
+            }
         }
     }
 }
