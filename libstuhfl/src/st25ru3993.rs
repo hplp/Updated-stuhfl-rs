@@ -19,7 +19,7 @@ impl ST25RU3993 {
             let port = std::ffi::CString::new(port).expect("Failed to convert string");
 
             // Connect to board
-            proc_err(ffi::Connect(port.as_ptr() as *mut i8))?;
+            proc_err(ffi::Connect(port.as_ptr() as *mut _))?;
             
             // Wait so that board has time to connect
             std::thread::sleep(std::time::Duration::from_micros(600000));
