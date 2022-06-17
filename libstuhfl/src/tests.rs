@@ -1,8 +1,8 @@
 use super::*;
 
-#[cfg(reader_tests)]
+#[cfg(feature = "reader_tests")]
 extern crate serial_test;
-#[cfg(reader_tests)]
+#[cfg(feature = "reader_tests")]
 use serial_test::*;
 
 #[test]
@@ -21,7 +21,7 @@ fn version_test() {
 
 #[test]
 #[serial]
-#[cfg(reader_tests)]
+#[cfg(feature = "reader_tests")]
 fn check_reader_version() -> Result<(), Error> {
 
     let reader = ST25RU3993::new().expect("Couldn't connect to reader");
@@ -35,7 +35,7 @@ fn check_reader_version() -> Result<(), Error> {
 
 #[test]
 #[serial]
-#[cfg(reader_tests)]
+#[cfg(feature = "reader_tests")]
 fn gen2_configure_ffi() -> Result<(), Error> {
 
     let mut reader = ST25RU3993::new().expect("Couldn't connect to reader");
@@ -47,7 +47,7 @@ fn gen2_configure_ffi() -> Result<(), Error> {
 
 #[test]
 #[serial]
-#[cfg(reader_tests)]
+#[cfg(feature = "reader_tests")]
 fn gen2_configure() -> Result<(), String> {
 
     let mut reader = ST25RU3993::new().expect("Couldn't connect to reader");
@@ -66,7 +66,7 @@ fn gen2_configure() -> Result<(), String> {
 
 #[test]
 #[serial]
-#[cfg(reader_tests)]
+#[cfg(feature = "reader_tests")]
 fn gen2_inventory_ffi() -> Result<(), Error> {
 
     // connect to reader

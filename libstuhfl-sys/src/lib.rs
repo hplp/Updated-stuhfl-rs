@@ -21,7 +21,7 @@ mod tests {
     //use super::*;
 
     #[test]
-    #[cfg(reader_tests)]
+    #[cfg(feature = "reader_tests")]
     fn connect_to_reader() {
         let mut found_port: Option<String> = None;
     
