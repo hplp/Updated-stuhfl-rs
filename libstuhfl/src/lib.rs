@@ -7,7 +7,7 @@ use num::FromPrimitive;
 #[macro_use]
 extern crate derive_builder;
 
-use std::{fmt,mem,cmp};
+use std::{fmt,mem};
 
 extern crate ffi;
 
@@ -58,7 +58,7 @@ enum_from_primitive! {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
 pub struct VersionNum {
     pub major: u8,
     pub minor: u8,
@@ -69,27 +69,6 @@ pub struct VersionNum {
 impl fmt::Display for VersionNum {
     fn fmt(&self, f: &mut fmt::Formatter::<'_>) -> fmt::Result {
         write!(f, "v{}.{}.{}.{}", self.major, self.minor, self.micro, self.nano)
-    }
-}
-
-impl PartialOrd for VersionNum {
-    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-        match self.major.partial_cmp(&other.major) {
-            Some(cmp::Ordering::Equal) => {
-                match self.minor.partial_cmp(&other.minor) {
-                    Some(cmp::Ordering::Equal) => {
-                        match self.micro.partial_cmp(&other.micro) {
-                            Some(cmp::Ordering::Equal) => {
-                                self.nano.partial_cmp(&other.nano)
-                            }
-                            x => x
-                        }
-                    }
-                    x => x
-                }
-            }
-            x => x
-        }
     }
 }
 

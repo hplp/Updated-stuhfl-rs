@@ -1,33 +1,30 @@
 use super::*;
 
+#[cfg(reader_tests)]
 extern crate serial_test;
+#[cfg(reader_tests)]
 use serial_test::*;
 
-extern crate serialport;
-use serialport as sp;
+#[test]
+fn version_test() {
+    let va = VersionNum{ major: 2, minor: 0, micro: 0, nano: 0 };
+    let vb = VersionNum{ major: 1, minor: 0, micro: 0, nano: 0 };
+    
+    assert!(va > vb);
+
+    let vb = VersionNum{ major: 0, minor: 3, micro: 0, nano: 0 };
+    assert!(va > vb);
+
+    let vb = VersionNum{ major: 2, minor: 1, micro: 0, nano: 0 };
+    assert!(vb > va);
+}
 
 #[test]
 #[serial]
+#[cfg(reader_tests)]
 fn check_reader_version() -> Result<(), Error> {
 
-    let mut found_port: Option<String> = None;
-    
-    if let Ok(ports) = sp::available_ports() {
-        for port in ports {
-            if let sp::SerialPortType::UsbPort(port_info) = port.port_type {
-                if port_info.vid == 0x403 && port_info.pid == 0x6015 {
-                    sp::new(&port.port_name, 9600).open().expect("Couldn't open port!");
-                    found_port = Some(port.port_name)
-                }
-            }
-        }
-    }
-    
-    let found_port = found_port.expect("Reader not found on any ports");
-
-    println!("Found Port: {}", &found_port);
-
-    let reader = ST25RU3993::new(&found_port).expect("Couldn't connect to reader");
+    let reader = ST25RU3993::new().expect("Couldn't connect to reader");
 
     let version = reader.get_board_version().expect("Couldn't get reader version");
 
@@ -38,24 +35,10 @@ fn check_reader_version() -> Result<(), Error> {
 
 #[test]
 #[serial]
+#[cfg(reader_tests)]
 fn gen2_configure_ffi() -> Result<(), Error> {
 
-    let mut found_port: Option<String> = None;
-    
-    if let Ok(ports) = sp::available_ports() {
-        for port in ports {
-            if let sp::SerialPortType::UsbPort(port_info) = port.port_type {
-                if port_info.vid == 0x403 && port_info.pid == 0x6015 {
-                    sp::new(&port.port_name, 9600).open().expect("Couldn't open port!");
-                    found_port = Some(port.port_name)
-                }
-            }
-        }
-    }
-    
-    let found_port = found_port.expect("Reader not found on any ports");
-
-    let mut reader = ST25RU3993::new(&found_port).expect("Couldn't connect to reader");
+    let mut reader = ST25RU3993::new().expect("Couldn't connect to reader");
 
     reader.setup_gen2_config(false, true, Antenna::Antenna1).expect("Couldn't configure reader");
 
@@ -64,24 +47,10 @@ fn gen2_configure_ffi() -> Result<(), Error> {
 
 #[test]
 #[serial]
-fn gen2_configure() -> Result<(), Error> {
+#[cfg(reader_tests)]
+fn gen2_configure() -> Result<(), String> {
 
-    let mut found_port: Option<String> = None;
-
-    if let Ok(ports) = sp::available_ports() {
-        for port in ports {
-            if let sp::SerialPortType::UsbPort(port_info) = port.port_type {
-                if port_info.vid == 0x403 && port_info.pid == 0x6015 {
-                    sp::new(&port.port_name, 9600).open().expect("Couldn't open port!");
-                    found_port = Some(port.port_name);
-                }
-            }
-        }
-    }
-
-    let found_port = found_port.expect("Reader not found on any ports");
-
-    let mut reader = ST25RU3993::new(&found_port).expect("Couldn't connect to reader");
+    let mut reader = ST25RU3993::new().expect("Couldn't connect to reader");
 
     let tx_rx_cfg = TxRxCfgBuilder::default().build().expect("Failed to build rx_tx_cfg");
 
@@ -97,25 +66,11 @@ fn gen2_configure() -> Result<(), Error> {
 
 #[test]
 #[serial]
+#[cfg(reader_tests)]
 fn gen2_inventory_ffi() -> Result<(), Error> {
 
-    let mut found_port: Option<String> = None;
-    
-    if let Ok(ports) = sp::available_ports() {
-        for port in ports {
-            if let sp::SerialPortType::UsbPort(port_info) = port.port_type {
-                if port_info.vid == 0x403 && port_info.pid == 0x6015 {
-                    sp::new(&port.port_name, 9600).open().expect("Couldn't open port!");
-                    found_port = Some(port.port_name)
-                }
-            }
-        }
-    }
-    
-    let found_port = found_port.expect("Reader not found on any ports");
-
     // connect to reader
-    let mut reader = ST25RU3993::new(&found_port).expect("Couldn't connect to reader");
+    let mut reader = ST25RU3993::new().expect("Couldn't connect to reader");
 
     // setup gen2
     reader.setup_gen2_config(false, true, Antenna::Antenna1).expect("Couldn't configure reader");

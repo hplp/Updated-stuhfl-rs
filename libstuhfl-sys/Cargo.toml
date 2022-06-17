@@ -6,11 +6,15 @@ links = "stuhfl"
 authors = ["Nathan Rowan <rvanathanrowan@gmail.com>"]
 build = "build.rs"
 
+[features]
+reader_tests = []
+
 [dependencies]
 
 [build-dependencies]
 cc = { version = "1.0", features = ["parallel"] }
 bindgen = "0.60"
 
-[features]
-static = []
+[dev-dependencies]
+ # serialport is only needed for reader_tests, but dev-dependencies are not allowed to be optional
+serialport = "*"

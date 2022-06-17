@@ -1,5 +1,6 @@
 use super::*;
 
+#[allow(dead_code)]
 enum Protocol {
     Gen2,
     Gb29768,
@@ -12,8 +13,34 @@ pub struct ST25RU3993 {
     protocol: Option<Protocol>,
 }
 
+#[cfg(feature = "port_scanning")]
+extern crate serialport as sp;
+
 impl ST25RU3993 {
-    pub fn new(port: &str) -> Result<Self, Error> {
+
+    #[cfg(feature = "port_scanning")]
+    pub fn new() -> Result<Self, Error> {
+        let mut found_port: Option<String> = None;
+    
+        if let Ok(ports) = sp::available_ports() {
+            for port in ports {
+                if let sp::SerialPortType::UsbPort(port_info) = port.port_type {
+                    if port_info.vid == 0x403 && port_info.pid == 0x6015 {
+                        sp::new(&port.port_name, 9600).open().expect("Couldn't open port!");
+                        found_port = Some(port.port_name)
+                    }
+                }
+            }
+        }
+        
+        let found_port = found_port.expect("Reader not found on any ports");
+
+        dbg!("Found port: {}", &found_port);
+
+        ST25RU3993::from_port(&found_port)
+    }
+
+    pub fn from_port(port: &str) -> Result<Self, Error> {
         unsafe {
             // Copy the port so that its "safe" from C
             let port = std::ffi::CString::new(port).expect("Failed to convert string");

@@ -6,12 +6,17 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = ["port_scanning"]
+port_scanning = ["serialport"]
+reader_tests = ["port_scanning"]
+
 [dependencies]
 ffi = { package = "libstuhfl-sys", version = "0.1.0", path = "../libstuhfl-sys" }
 enum_primitive = "*"
 num = "*"
 derive_builder = "*"
+serialport = { version = "*", optional = true }
 
 [dev-dependencies]
 serial_test = "*"
-serialport = "*"

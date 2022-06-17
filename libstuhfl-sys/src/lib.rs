@@ -1,7 +1,7 @@
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
-
+#![allow(clippy::derivable_impls)]
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
@@ -16,13 +16,29 @@ pub use initializers::*;
 #[cfg(unix)]
 #[cfg(test)]
 mod tests {
-    use std::mem;
-    use std::ffi::*;
-    use super::*;
+    //use std::mem;
+    //use std::ffi::*;
+    //use super::*;
 
     #[test]
+    #[cfg(reader_tests)]
     fn connect_to_reader() {
-        let port = CString::new("/dev/ttyUSB0").expect("Couldn't create string");
+        let mut found_port: Option<String> = None;
+    
+        if let Ok(ports) = sp::available_ports() {
+            for port in ports {
+                if let sp::SerialPortType::UsbPort(port_info) = port.port_type {
+                    if port_info.vid == 0x403 && port_info.pid == 0x6015 {
+                        sp::new(&port.port_name, 9600).open().expect("Couldn't open port!");
+                        found_port = Some(port.port_name)
+                    }
+                }
+            }
+        }
+        
+        let found_port = found_port.expect("Reader not found on any ports");
+
+        let port = CString::new(found_port).expect("Couldn't create string");
         let ptr = port.into_raw();
 
         unsafe {

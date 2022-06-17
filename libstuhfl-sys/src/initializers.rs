@@ -199,6 +199,7 @@ impl Default for STUHFL_T_ST25RU3993_ChannelItem {
 }
 
 impl STUHFL_T_ST25RU3993_ChannelItem {
+    #[allow(clippy::type_complexity)]
     fn from_raw(raw: (u32, ((u8, u8, u8), (u8, u8, u8)), u8, u8)) -> Self {
         Self {
             frequency: raw.0,
