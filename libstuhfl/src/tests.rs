@@ -1,5 +1,4 @@
 use super::*;
-use st25ru3993::*;
 
 extern crate serial_test;
 use serial_test::*;
@@ -7,7 +6,6 @@ use serial_test::*;
 extern crate serialport;
 use serialport as sp;
 
-#[cfg(unix)]
 #[test]
 #[serial]
 fn check_reader_version() -> Result<(), Error> {
@@ -38,10 +36,9 @@ fn check_reader_version() -> Result<(), Error> {
     Ok(())
 }
 
-#[cfg(unix)]
 #[test]
 #[serial]
-fn gen2_configure() -> Result<(), Error> {
+fn gen2_configure_ffi() -> Result<(), Error> {
 
     let mut found_port: Option<String> = None;
     
@@ -65,10 +62,42 @@ fn gen2_configure() -> Result<(), Error> {
     Ok(())
 }
 
-#[cfg(unix)]
 #[test]
 #[serial]
-fn gen2_inventory() -> Result<(), Error> {
+fn gen2_configure() -> Result<(), Error> {
+
+    let mut found_port: Option<String> = None;
+
+    if let Ok(ports) = sp::available_ports() {
+        for port in ports {
+            if let sp::SerialPortType::UsbPort(port_info) = port.port_type {
+                if port_info.vid == 0x403 && port_info.pid == 0x6015 {
+                    sp::new(&port.port_name, 9600).open().expect("Couldn't open port!");
+                    found_port = Some(port.port_name);
+                }
+            }
+        }
+    }
+
+    let found_port = found_port.expect("Reader not found on any ports");
+
+    let mut reader = ST25RU3993::new(&found_port).expect("Couldn't connect to reader");
+
+    let tx_rx_cfg = TxRxCfgBuilder::default().build().expect("Failed to build rx_tx_cfg");
+
+    let gen2_config = Gen2Cfg {
+        tx_rx_cfg: &tx_rx_cfg,
+    };
+
+    reader.configure_gen2(&gen2_config)?;
+
+    Ok(())
+
+}
+
+#[test]
+#[serial]
+fn gen2_inventory_ffi() -> Result<(), Error> {
 
     let mut found_port: Option<String> = None;
     

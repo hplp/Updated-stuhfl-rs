@@ -118,6 +118,13 @@ impl ST25RU3993 {
         self.protocol = Some(Protocol::Gen2);
         Ok(())
     }
+
+    pub fn configure_gen2(&mut self, gen2_cfg: &Gen2Cfg) -> Result<(), Error> {
+        gen2::configure_gen2(gen2_cfg)?;
+
+        self.protocol = Some(Protocol::Gen2);
+        Ok(())
+    }
 }
 
 impl Drop for ST25RU3993 {

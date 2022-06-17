@@ -1,6 +1,11 @@
-#[macro_use] extern crate enum_primitive;
+#[macro_use]
+extern crate enum_primitive;
+
 extern crate num;
 use num::FromPrimitive;
+
+#[macro_use]
+extern crate derive_builder;
 
 use std::{fmt,mem,cmp};
 
@@ -124,7 +129,64 @@ impl fmt::Display for Version {
     }
 }
 
-pub mod st25ru3993;
+pub struct TxOutputLevel (i8);
+
+#[derive(Builder, Clone, Copy)]
+#[builder(build_fn(validate = "Self::validate"))]
+pub struct TxRxCfg {
+    /// Transmission output level (dB). See control register 3 for further info. Valid range [0dB..-19dB].
+    #[builder(default="-2")]
+    tx_output_level: i8,
+    /// Reciever sensitivity level (dB). Valid range [-17dB..+19dB].
+    #[builder(default="-3")]
+    rx_sensitivity_level: i8,
+    /// Antenna to be used.
+    #[builder(default="Antenna::Antenna1")]
+    antenna: Antenna,
+    /// Time in ms for alternating the antennas when alternating mode is used.
+    #[builder(default="1")]
+    alternate_antenna_interval: u16,
+}
+
+impl TxRxCfg {
+    fn as_ffi(&self) -> ffi::STUHFL_T_ST25RU3993_TxRxCfg {
+        ffi::STUHFL_T_ST25RU3993_TxRxCfg {
+            txOutputLevel: self.tx_output_level,
+            rxSensitivity: self.rx_sensitivity_level,
+            usedAntenna: self.antenna as u8,
+            alternateAntennaInterval: self.alternate_antenna_interval,
+            rfu: 3 // RFU defined in firmware...
+        }
+    }
+}
+
+impl TxRxCfgBuilder {
+    fn validate(&self) -> Result<(), String> {
+        if let Some(i) = self.tx_output_level {
+            if i > 0 || i < -19 {
+                return Err("tx_output_level invalid: see docs for details".to_owned());
+            }
+        }
+
+        if let Some(i) = self.rx_sensitivity_level {
+            if i > 19 || i < -17 {
+                return Err("rx_sensitivity_level invalid: see docs for details".to_owned());
+            }
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Builder)]
+pub struct Gen2Cfg<'a> {
+    /// Antenna configuration
+    tx_rx_cfg: &'a TxRxCfg,
+    
+}
+
+mod st25ru3993;
+pub use st25ru3993::*;
 
 #[cfg(test)]
 mod tests;
