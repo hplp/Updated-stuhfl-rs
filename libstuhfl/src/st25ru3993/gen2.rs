@@ -2,8 +2,10 @@ use super::*;
 
 pub fn setup_gen2_config(reader: &mut ST25RU3993, single_tag: bool, freq_hopping: bool, antenna: Antenna) -> Result<(), Error> {
     // Set up tx_rx_cfg to default firmware values
-    let mut tx_rx_cfg = ffi::STUHFL_T_ST25RU3993_TxRxCfg::default();
-    tx_rx_cfg.usedAntenna = antenna as u8;
+    let mut tx_rx_cfg = ffi::STUHFL_T_ST25RU3993_TxRxCfg {
+        usedAntenna: antenna as u8,
+        ..Default::default()
+    };
 
     // Set up inv_gen2_cfg to default firmware values
     let mut inv_gen2_cfg = ffi::STUHFL_T_ST25RU3993_Gen2_InventoryCfg::default();
@@ -24,13 +26,17 @@ pub fn setup_gen2_config(reader: &mut ST25RU3993, single_tag: bool, freq_hopping
     // gen2_protocol_cfg.trext = ffi::STUHFL_D_TREXT_ON != 0;
 
     // Set up freq_lbt
-    let mut freq_lbt = ffi::STUHFL_T_ST25RU3993_FreqLBT::default();
-    freq_lbt.listeningTime = 0;
+    let mut freq_lbt = ffi::STUHFL_T_ST25RU3993_FreqLBT {
+        listeningTime: 0,
+        ..Default::default()
+    };
 
     // Set up channel_list
-    let mut channel_list = ffi::STUHFL_T_ST25RU3993_ChannelList::default();
-    channel_list.persistent = false;
-    channel_list.channelListIdx = 0;
+    let mut channel_list = ffi::STUHFL_T_ST25RU3993_ChannelList {
+        persistent: false,
+        channelListIdx: 0,
+        ..Default::default()
+    };
     if freq_hopping {
         channel_list = ffi::STUHFL_T_ST25RU3993_ChannelList::from_profile(ffi::STUHFL_D_PROFILE_EUROPE as u8);
     } else {
@@ -42,8 +48,10 @@ pub fn setup_gen2_config(reader: &mut ST25RU3993, single_tag: bool, freq_hopping
     let mut freq_hop = ffi::STUHFL_T_ST25RU3993_FreqHop::default();
 
     // Set up gen2_select
-    let mut gen2_select = ffi::STUHFL_T_Gen2_Select::default();
-    gen2_select.mode = ffi::STUHFL_D_GEN2_SELECT_MODE_CLEAR_LIST as u8;
+    let mut gen2_select = ffi::STUHFL_T_Gen2_Select{
+        mode: ffi::STUHFL_D_GEN2_SELECT_MODE_CLEAR_LIST as u8,
+        ..Default::default()
+    };
 
     unsafe {
         // Apply reader settings and check for errors along the way

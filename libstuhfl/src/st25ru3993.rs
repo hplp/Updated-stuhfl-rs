@@ -16,10 +16,10 @@ impl ST25RU3993 {
     pub fn new(port: &str) -> Result<Self, Error> {
         unsafe {
             // Copy the port so that its "safe" from C
-            let mut port = port.to_owned();
+            let port = std::ffi::CString::new(port).expect("Failed to convert string");
 
             // Connect to board
-            proc_err(ffi::Connect(port.as_mut_ptr() as _))?;
+            proc_err(ffi::Connect(port.as_ptr() as *mut i8))?;
             
             // Wait so that board has time to connect
             std::thread::sleep(std::time::Duration::from_micros(600000));
@@ -61,8 +61,8 @@ impl ST25RU3993 {
             
             // Return safe version
             Ok(Version {
-                sw_ver: sw_ver,
-                hw_ver: hw_ver,
+                sw_ver,
+                hw_ver,
                 sw_info: VersionInfo {info: sw_info},
                 hw_info: VersionInfo {info: hw_info},
             })
@@ -98,10 +98,12 @@ impl ST25RU3993 {
 
             proc_err(ffi::Get_TxRxCfg(&mut tx_rx_cfg))?;
 
-            let mut tune_cfg = ffi::STUHFL_T_ST25RU3993_TuneCfg::default();
-            tune_cfg.antenna = tx_rx_cfg.usedAntenna;
-            tune_cfg.algorithm = algo as u8;
-            tune_cfg.tuneAll = true;
+            let mut tune_cfg = ffi::STUHFL_T_ST25RU3993_TuneCfg{
+                antenna: tx_rx_cfg.usedAntenna,
+                algorithm: algo as u8,
+                tuneAll: true,
+                ..Default::default()
+            };
             
             proc_err(ffi::TuneChannel(&mut tune_cfg))?;
         }

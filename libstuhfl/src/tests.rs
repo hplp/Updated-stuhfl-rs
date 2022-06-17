@@ -105,13 +105,17 @@ fn gen2_inventory() -> Result<(), Error> {
         let mut tag_data: [ffi::STUHFL_T_InventoryTag; ffi::STUHFL_D_MAX_TAG_LIST_SIZE as usize] = std::mem::zeroed();
 
         // create tag data storage container
-        let mut inv_data = ffi::STUHFL_T_InventoryData::default();
-        inv_data.tagList = &mut tag_data as _;
-        inv_data.tagListSizeMax = ffi::STUHFL_D_MAX_TAG_LIST_SIZE as u16;
+        let mut inv_data = ffi::STUHFL_T_InventoryData{
+            tagList: &mut tag_data as _,
+            tagListSizeMax: ffi::STUHFL_D_MAX_TAG_LIST_SIZE as u16,
+            ..Default::default()
+        };
 
         // customize inventory options
-        let mut inv_option = ffi::STUHFL_T_InventoryOption::default();
-        inv_option.roundCnt = 2000;
+        let mut inv_option = ffi::STUHFL_T_InventoryOption{
+            roundCnt: 2000,
+            ..Default::default()
+        };
         inv_option.options |= ffi::STUHFL_D_INVENTORYREPORT_OPTION_HEARTBEAT as u8;
 
         proc_err(ffi::Gen2_Inventory(&mut inv_option, &mut inv_data))?;
