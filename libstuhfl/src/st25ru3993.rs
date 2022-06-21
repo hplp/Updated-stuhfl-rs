@@ -155,8 +155,19 @@ impl ST25RU3993 {
 
     /// Configures the reader for using the Gen2 protocol
     pub fn configure_gen2(&mut self, gen2_cfg: &Gen2Cfg) -> Result<(), Error> {
-        gen2::configure_gen2(gen2_cfg)?;
+        // Set up tx_rx_cfg
+        let mut tx_rx_cfg = gen2_cfg.tx_rx_cfg.as_ffi();
+        unsafe {proc_err(ffi::Set_TxRxCfg(&mut tx_rx_cfg))?}
 
+        // Set up gen2_inventory_cfg
+        let mut inv_cfg = gen2_cfg.inv_cfg.as_ffi();
+        unsafe {proc_err(ffi::Set_Gen2_InventoryCfg(&mut inv_cfg))?};
+
+        // Set up gen2_protocol_cfg
+        let mut proto_cfg = gen2_cfg.proto_cfg.as_ffi();
+        unsafe {proc_err(ffi::Set_Gen2_ProtocolCfg(&mut proto_cfg))?};
+
+        // Enable Gen2 protocol commands for reader
         self.protocol = Some(Protocol::Gen2);
         Ok(())
     }

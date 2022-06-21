@@ -116,3 +116,11 @@ impl From<Error> for String {
         format!["{}", e]
     }
 }
+
+pub(crate) fn proc_err (code: ffi::STUHFL_T_RET_CODE) -> Result<(), Error> {
+    if code == ffi::STUHFL_ERR_NONE {
+        Ok(())
+    } else {
+        Err(Error::from_u32(code).unwrap())
+    }
+}
