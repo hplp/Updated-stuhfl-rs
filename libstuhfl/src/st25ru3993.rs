@@ -17,7 +17,7 @@ pub struct ST25RU3993 {
 extern crate serialport as sp;
 
 impl ST25RU3993 {
-
+    /// Create a new ST25RU3993 RFID reader by automatically scanning ports
     #[cfg(feature = "port_scanning")]
     pub fn new() -> Result<Self, Error> {
         let mut found_port: Option<String> = None;
@@ -37,9 +37,11 @@ impl ST25RU3993 {
 
         dbg!("Found port: {}", &found_port);
 
+        // hand over creation to normal constructor
         ST25RU3993::from_port(&found_port)
     }
 
+    /// Create anew ST25RU3993 RFID reader using a path to a specific port
     pub fn from_port(port: &str) -> Result<Self, Error> {
         unsafe {
             // Copy the port so that its "safe" from C
@@ -66,6 +68,7 @@ impl ST25RU3993 {
         }
     }
 
+    /// Queries software & hardware information from the reader
     pub fn get_board_version(&self) -> Result<Version, Error> {
         unsafe {
             // Create structs to be filled by function
@@ -96,6 +99,8 @@ impl ST25RU3993 {
         }
     }
 
+    /// Tests whether the board is compatible or not.
+    /// (This is called automatically by the constructor)
     fn test_compatible(&self) -> Result<bool, Error> {
         const LOWEST_SW_VER: VersionNum = VersionNum {
             major: 3,
@@ -115,6 +120,7 @@ impl ST25RU3993 {
         Ok(ver.sw_ver >= LOWEST_SW_VER && ver.hw_ver >= LOWEST_HW_VER)
     }
 
+    /// Private function to run the specified tuning algorithm on the reader
     fn tune_freqs(&mut self, algo: TuningAlgorithm) -> Result<(), Error> {
         if algo == TuningAlgorithm::None {
             return Ok(())
@@ -138,6 +144,7 @@ impl ST25RU3993 {
         Ok(())
     }
 
+    /// WARNING: DEPRECATED. Recreates the setupGen2Config() command found in the STUHFL demo program
     pub fn setup_gen2_config(&mut self, single_tag: bool, freq_hopping: bool, antenna: Antenna) -> Result<(), Error> {
         gen2::setup_gen2_config(self, single_tag, freq_hopping, antenna)?;
 
@@ -146,6 +153,7 @@ impl ST25RU3993 {
         Ok(())
     }
 
+    /// Configures the reader for using the Gen2 protocol
     pub fn configure_gen2(&mut self, gen2_cfg: &Gen2Cfg) -> Result<(), Error> {
         gen2::configure_gen2(gen2_cfg)?;
 
@@ -154,11 +162,14 @@ impl ST25RU3993 {
     }
 }
 
+/// Automatically handles disconnecting from the reader.
 impl Drop for ST25RU3993 {
     fn drop(&mut self) {
         unsafe {
             // close the connection to the reader
-            proc_err(ffi::Disconnect()).unwrap();
+            if proc_err(ffi::Disconnect()).is_err() {
+                eprintln!("ERROR: Couldn't disconnect from reader during call to Drop()")
+            };
         }
     }
 }
