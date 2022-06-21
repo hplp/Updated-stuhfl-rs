@@ -29,6 +29,9 @@ jobs:
           target/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
         
+    - name: Install udev
+      run: sudo apt-get install -y libudev-dev
+        
     - name: Install Rust toolchain
       uses: actions-rs/toolchain@v1
       with:
