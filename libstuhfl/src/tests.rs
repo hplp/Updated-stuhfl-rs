@@ -20,6 +20,15 @@ fn version_test() {
 }
 
 #[test]
+fn builder_test() -> Result<(), Box<dyn std::error::Error>> {
+
+    // Builder should have valid defaults for all configuration values
+    Gen2CfgBuilder::default().build()?;
+
+    Ok(())
+}
+
+#[test]
 #[serial]
 #[cfg(feature = "reader_tests")]
 fn check_reader_version() -> Result<(), String> {
@@ -52,11 +61,7 @@ fn gen2_configure() -> Result<(), String> {
 
     let mut reader = ST25RU3993::new()?;
 
-    let tx_rx_cfg = TxRxCfgBuilder::default()
-        .build()?;
-
     let gen2_config = Gen2CfgBuilder::default()
-        .tx_rx_cfg(&tx_rx_cfg)
         .build()?;
 
     reader.configure_gen2(&gen2_config)?;

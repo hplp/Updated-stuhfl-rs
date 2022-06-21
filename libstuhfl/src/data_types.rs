@@ -5,7 +5,7 @@ pub(crate) trait AsFFI<T> {
 }
 
 enum_from_primitive! {
-    #[derive(Debug, Copy, Clone, PartialEq)]
+    #[derive(Copy, Clone, PartialEq)]
     #[repr(u8)]
     pub enum Antenna {
         Antenna1 = ffi::STUHFL_D_ANTENNA_1 as u8,
@@ -17,7 +17,7 @@ enum_from_primitive! {
 }
 
 // enum_from_primitive! {
-//     #[derive(Debug, Copy, Clone, PartialEq)]
+//     #[derive(Copy, Clone, PartialEq)]
 //     #[repr(u8)]
 //     pub enum Profile {
 //         Custom = ffi::STUHFL_D_PROFILE_CUSTOM as u8,
@@ -30,7 +30,7 @@ enum_from_primitive! {
 // }
 
 enum_from_primitive! {
-    #[derive(Debug, Copy, Clone, PartialEq)]
+    #[derive(Copy, Clone, PartialEq)]
     #[repr(u8)]
     pub enum TuningAlgorithm {
         None = ffi::STUHFL_D_TUNING_ALGO_NONE as u8,
@@ -41,7 +41,7 @@ enum_from_primitive! {
 }
 
 enum_from_primitive! {
-    #[derive(Debug, Copy, Clone, PartialEq)]
+    #[derive(Copy, Clone, PartialEq)]
     #[repr(u8)]
     /// Query Selection.
     // These values are from the GS1 Standard
@@ -56,7 +56,7 @@ enum_from_primitive! {
 }
 
 enum_from_primitive! {
-    #[derive(Debug, Copy, Clone, PartialEq)]
+    #[derive(Copy, Clone, PartialEq)]
     #[repr(u8)]
     /// One of four Gen2 Sessions
     pub enum Gen2Session {
@@ -72,7 +72,7 @@ enum_from_primitive! {
 }
 
 enum_from_primitive! {
-    #[derive(Debug, Copy, Clone, PartialEq)]
+    #[derive(Copy, Clone, PartialEq)]
     #[repr(u8)]
     /// Query tags who's inventoried flag is A or B
     // These values are from the GS1 Standard
@@ -83,7 +83,58 @@ enum_from_primitive! {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+enum_from_primitive! {
+    #[derive(Copy, Clone, PartialEq)]
+    #[repr(u8)]
+    /// TARI values are the length of time to represent a
+    /// binary 0 using the Gen 2 standard
+    pub enum Gen2Tari {
+        /// 6.25 μs
+        Six = ffi::STUHFL_D_GEN2_TARI_6_25 as u8,
+        /// 12.5 μs
+        Twelve = ffi::STUHFL_D_GEN2_TARI_12_50 as u8,
+        /// 25 μs
+        TwentyFive = ffi::STUHFL_D_GEN2_TARI_25_00 as u8,
+    }
+}
+
+enum_from_primitive! {
+    #[derive(Copy, Clone, PartialEq)]
+    #[repr(u8)]
+    /// BLF is the Backscatter Link Frequency of the transmission
+    pub enum Gen2Blf {
+        /// 40 kHz
+        Forty = ffi::STUHFL_D_GEN2_BLF_40 as u8,
+        /// 160 kHz
+        OneHundredSixty = ffi::STUHFL_D_GEN2_BLF_160 as u8,
+        /// 213 kHz
+        TwoHundredThirteen = ffi::STUHFL_D_GEN2_BLF_213 as u8,
+        /// 256 kHz
+        TwoHundredFiftySix = ffi::STUHFL_D_GEN2_BLF_256 as u8,
+        /// 320 kHz
+        ThreeHundredTwenty = ffi::STUHFL_D_GEN2_BLF_320 as u8,
+        /// 640 kHz
+        SixHundredForty = ffi::STUHFL_D_GEN2_BLF_640 as u8,
+    }
+}
+
+enum_from_primitive! {
+    #[derive(Copy, Clone, PartialEq)]
+    #[repr(u8)]
+    /// Gen2 protocol coding scheme
+    pub enum Gen2Coding {
+        /// FM0 Coding
+        Fm0 = ffi::STUHFL_D_GEN2_CODING_FM0 as u8,
+        /// Miller 2 Coding
+        Miller2 = ffi::STUHFL_D_GEN2_CODING_MILLER2 as u8,
+        /// Miller 4 Coding
+        Miller4 = ffi::STUHFL_D_GEN2_CODING_MILLER4 as u8,
+        /// Miller 8 Coding
+        Miller8 = ffi::STUHFL_D_GEN2_CODING_MILLER8 as u8,
+    }
+}
+
+#[derive(Clone, PartialEq, PartialOrd)]
 pub struct VersionNum {
     pub major: u8,
     pub minor: u8,
@@ -108,7 +159,7 @@ impl From <ffi::STUHFL_T_Version> for VersionNum {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct VersionInfo {
     pub info: String
 }
@@ -119,7 +170,7 @@ impl fmt::Display for VersionInfo {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Version {
     pub sw_ver: VersionNum,
     pub hw_ver: VersionNum,
@@ -135,7 +186,7 @@ impl fmt::Display for Version {
 
 pub struct TxOutputLevel (i8);
 
-#[derive(Builder, Clone, Copy)]
+#[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct TxRxCfg {
     /// Transmission output level (dB). See control register 3 for further info. Valid range [0dB..-19dB].
@@ -182,7 +233,7 @@ impl TxRxCfgBuilder {
     }
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Clone)]
 pub enum Gen2AdaptiveQ {
     /// Configure Adaptive Q
     Enable(Gen2AdaptiveQCfg),
@@ -190,7 +241,7 @@ pub enum Gen2AdaptiveQ {
     Disable(u8)
 }
 
-#[derive(Builder, Clone, Copy, PartialEq)]
+#[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct Gen2AdaptiveQCfg {
     /// Q Starting value
@@ -218,7 +269,7 @@ pub struct Gen2AdaptiveQCfg {
 
 impl AsFFI<ffi::STUHFL_T_ST25RU3993_Gen2_Anticollision> for Gen2AdaptiveQ {
     fn as_ffi(&self) -> ffi::STUHFL_T_ST25RU3993_Gen2_Anticollision {
-        match *self {
+        match self {
             Gen2AdaptiveQ::Enable(conf) => {
                 let options
                     = if conf.adjust_nic {ffi::STUHFL_D_USE_QUERY_ADJUST_NIC as u8} else {0}
@@ -238,7 +289,7 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_Gen2_Anticollision> for Gen2AdaptiveQ {
             // use all firmware defaults
             Gen2AdaptiveQ::Disable(q) => ffi::STUHFL_T_ST25RU3993_Gen2_Anticollision {
                 adaptiveQ: false,
-                startQ: q,
+                startQ: *q,
                 ..Default::default()
             }
         }        
@@ -263,7 +314,7 @@ impl Gen2AdaptiveQCfgBuilder {
     }
 }
 
-#[derive(Builder, Clone, Copy)]
+#[derive(Builder, Clone)]
 pub struct Gen2InventoryOptions {
     /// Fast Inventory enabling. If set to false, normal inventory round will be performed.
     /// If set to true, fast inventory rounds will be performed.
@@ -288,7 +339,7 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_Gen2_InventoryOption> for Gen2InventoryOptio
     }
 }
 
-#[derive(Builder, Clone, Copy)]
+#[derive(Builder, Clone)]
 pub struct AutoTuning {
     /// Auto-tuning check interval (in inventory rounds)
     #[builder(default="7")]
@@ -315,7 +366,7 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_AutoTuning> for AutoTuning {
     }
 }
 
-#[derive(Builder, Clone, Copy)]
+#[derive(Builder, Clone)]
 pub struct Gen2QueryParams {
     /// QUERY command Sel field
     #[builder(default = "QuerySel::All")]
@@ -393,19 +444,25 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_AdaptiveOutputPower> for AutoTxStrength {
     }
 }
 
-#[derive(Builder)]
+#[derive(Builder, Clone)]
 pub struct Gen2InventoryCfg {
     /// Extra inventory options
+    #[builder(default = "Gen2InventoryOptionsBuilder::default().build().unwrap()")]
     options: Gen2InventoryOptions,
     /// Automatic Q adjustment settings (Anti-collision)
+    #[builder(default = "Gen2AdaptiveQ::Enable(Gen2AdaptiveQCfgBuilder::default().build().unwrap())")]
     adaptive_q: Gen2AdaptiveQ,
     /// Automatic tuning settings
+    #[builder(default = "AutoTuningBuilder::default().build().unwrap()")]
     auto_tuning: AutoTuning,
     /// Parameters to QUERY commands
+    #[builder(default = "Gen2QueryParamsBuilder::default().build().unwrap()")]
     query_params: Gen2QueryParams,
     /// Adaptive RX Sensitivity options
+    #[builder(default = "AutoRxSensitivity::from(true)")]
     auto_rx_sensitivity: AutoRxSensitivity,
     /// Adaptive TX Strength options
+    #[builder(default = "AutoTxStrength::from(true)")]
     auto_tx_strength: AutoTxStrength,
 }
 
@@ -422,36 +479,82 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_Gen2_InventoryCfg> for Gen2InventoryCfg {
     }
 }
 
-#[derive(Builder)]
-/// TODO
+#[derive(Builder, Clone)]
 pub struct Gen2ProtocolCfg {
     /// Tari setting
-    tari: u8,
-    /// Backscatter link frequnecy factor
-    blf: u8,
+    #[builder(default = "Gen2Tari::Six")]
+    tari: Gen2Tari,
+    /// Backscatter link frequency factor
+    #[builder(default = "Gen2Blf::ThreeHundredTwenty")]
+    blf: Gen2Blf,
     /// Coding
-    coding: u8,
+    #[builder(default = "Gen2Coding::Miller2")]
+    coding: Gen2Coding,
     /// Short or long preamble (true means long)
+    #[builder(default = "ffi::STUHFL_D_TREXT_ON != 0")]
     trext: bool,
 }
 
 impl AsFFI<ffi::STUHFL_T_ST25RU3993_Gen2_ProtocolCfg> for Gen2ProtocolCfg {
     fn as_ffi(&self) -> ffi::STUHFL_T_ST25RU3993_Gen2_ProtocolCfg {
         ffi::STUHFL_T_ST25RU3993_Gen2_ProtocolCfg {
-            tari: self.tari,
-            blf: self.blf,
-            coding: self.coding,
+            tari: self.tari as u8,
+            blf: self.blf as u8,
+            coding: self.coding as u8,
             trext: self.trext,
         }
     }
 }
 
+/// Listen Before Talk
+#[derive(Clone)]
+pub enum Lbt {
+    Enable(LbtCfg),
+    Disable,
+}
+
+#[derive(Builder, Clone)]
+pub struct LbtCfg {
+    /// Length of listening period
+    #[builder(default = "1")]
+    listening_time: u16,
+    /// Idle time for LBT
+    #[builder(default = "0")]
+    idle_time: u16,
+    /// RSSI threshold value
+    #[builder(default = "31")]
+    rssi_log_threshold: u8,
+}
+
+impl AsFFI<ffi::STUHFL_T_ST25RU3993_FreqLBT> for Lbt {
+    fn as_ffi(&self) -> ffi::STUHFL_T_ST25RU3993_FreqLBT {
+        match self {
+            Lbt::Enable(cfg) => ffi::STUHFL_T_ST25RU3993_FreqLBT {
+                listeningTime: cfg.listening_time,
+                idleTime: cfg.idle_time,
+                rssiLogThreshold: cfg.rssi_log_threshold,
+                skipLBTcheck: false
+            },
+            Lbt::Disable => ffi::STUHFL_T_ST25RU3993_FreqLBT {
+                skipLBTcheck: true,
+                ..Default::default()
+            }
+        }
+    }
+}
+
 #[derive(Builder)]
-pub struct Gen2Cfg<'a> {
+pub struct Gen2Cfg {
     /// Antenna configuration
-    pub(crate) tx_rx_cfg: &'a TxRxCfg,
+    #[builder(default = "TxRxCfgBuilder::default().build().unwrap()")]
+    pub(crate) tx_rx_cfg: TxRxCfg,
     /// Settings for inventorying tags
-    pub(crate) inv_cfg: &'a Gen2InventoryCfg,
+    #[builder(default = "Gen2InventoryCfgBuilder::default().build().unwrap()")]
+    pub(crate) inv_cfg: Gen2InventoryCfg,
     /// Gen2 protocol configuration
-    pub(crate) proto_cfg: &'a Gen2ProtocolCfg,
+    #[builder(default = "Gen2ProtocolCfgBuilder::default().build().unwrap()")]
+    pub(crate) proto_cfg: Gen2ProtocolCfg,
+    /// Listen before talk configuration
+    #[builder(default = "Lbt::Disable")]
+    pub(crate) lbt: Lbt,
 }

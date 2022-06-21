@@ -144,7 +144,8 @@ impl ST25RU3993 {
         Ok(())
     }
 
-    /// WARNING: DEPRECATED. Recreates the setupGen2Config() command found in the STUHFL demo program
+    /// Recreates the setupGen2Config() command found in the STUHFL demo program
+    #[warn(deprecated)]
     pub fn setup_gen2_config(&mut self, single_tag: bool, freq_hopping: bool, antenna: Antenna) -> Result<(), Error> {
         gen2::setup_gen2_config(self, single_tag, freq_hopping, antenna)?;
 
@@ -155,17 +156,30 @@ impl ST25RU3993 {
 
     /// Configures the reader for using the Gen2 protocol
     pub fn configure_gen2(&mut self, gen2_cfg: &Gen2Cfg) -> Result<(), Error> {
-        // Set up tx_rx_cfg
+        // Set up antenna configuration
         let mut tx_rx_cfg = gen2_cfg.tx_rx_cfg.as_ffi();
         unsafe {proc_err(ffi::Set_TxRxCfg(&mut tx_rx_cfg))?}
 
-        // Set up gen2_inventory_cfg
+        // Set up inventory configuration
         let mut inv_cfg = gen2_cfg.inv_cfg.as_ffi();
         unsafe {proc_err(ffi::Set_Gen2_InventoryCfg(&mut inv_cfg))?};
 
-        // Set up gen2_protocol_cfg
+        // Set up protocol configuration
         let mut proto_cfg = gen2_cfg.proto_cfg.as_ffi();
         unsafe {proc_err(ffi::Set_Gen2_ProtocolCfg(&mut proto_cfg))?};
+
+        // Set up lbt configuraiton
+        let mut lbt = gen2_cfg.lbt.as_ffi();
+        unsafe {proc_err(ffi::Set_FreqLBT(&mut lbt))?};
+
+        // Set up channel list configuration
+        // TODO
+
+        // Set up frequency hopping configuration
+        // TODO
+
+        // Set up select configuraiton
+        // TODO
 
         // Enable Gen2 protocol commands for reader
         self.protocol = Some(Protocol::Gen2);
