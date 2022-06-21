@@ -157,11 +157,124 @@ impl TxRxCfgBuilder {
     }
 }
 
+pub enum Gen2AdaptiveQ {
+    /// Configure Adaptive Q
+    Enable(Gen2AdaptiveQCfg),
+    /// Set manual Q
+    Disable(u8)
+}
+
+#[derive(Builder, Clone, Copy)]
+#[builder(build_fn(validate = "Self::validate"))]
+pub struct Gen2AdaptiveQCfg {
+    /// Q Starting value
+    #[builder(default="6")]
+    start_q: u8,
+    /// Minimum Q Value
+    #[builder(default="2")]
+    min_q: u8,
+    /// Maximum Q Value (max 15)
+    #[builder(default="ffi::STUHFL_D_GEN2_MAXQ as u8")]
+    max_q: u8,
+    /// Q Algorithm option
+    #[builder(default="false")]
+    adjust_nic: bool,
+    /// Q Algorithm option
+    #[builder(default="false")]
+    single_adjust: bool,
+    /// Q Algorithm option
+    #[builder(default="false")]
+    use_ceil_floor: bool,
+    /// Q Algorithm option
+    #[builder(default="false")]
+    reset_after_round: bool,
+}
+
+impl Gen2AdaptiveQ {
+    fn as_ffi(&self) -> ffi::STUHFL_T_ST25RU3993_Gen2_Anticollision {
+        match *self {
+            Gen2AdaptiveQ::Enable(conf) => {
+                let options
+                    = if conf.adjust_nic {ffi::STUHFL_D_USE_QUERY_ADJUST_NIC as u8} else {0}
+                    | if conf.single_adjust {ffi::STUHFL_D_SINGLE_ADJUST as u8} else {0}
+                    | if conf.use_ceil_floor {ffi::STUHFL_D_USE_CEIL_FLOOR as u8} else {0}
+                    | if conf.reset_after_round {ffi::STUHFL_D_RESET_Q_AFTER_ROUND as u8} else {0};
+
+                ffi::STUHFL_T_ST25RU3993_Gen2_Anticollision {
+                    adaptiveQ: true,
+                    startQ: conf.start_q,
+                    minQ: conf.min_q,
+                    maxQ: conf.max_q,
+                    options,
+                    C1: [5; 16],  // defined in firmware
+                    C2: [35; 16], // defined in firmware
+                }
+            },
+            // use all firmware defaults
+            Gen2AdaptiveQ::Disable(q) => ffi::STUHFL_T_ST25RU3993_Gen2_Anticollision {
+                adaptiveQ: false,
+                startQ: q,
+                minQ: 2,
+                maxQ: 15,
+                options: 0,
+                C1: [5; 16],
+                C2: [35; 16],
+            }
+        }        
+    }
+}
+
+impl Gen2AdaptiveQCfgBuilder {
+    fn validate(&self) -> Result<(), String> {
+        if let Some(max) = self.max_q {
+            if let Some(min) = self.min_q {
+                if max <= min {
+                    return Err("max_q must be greater than min_q".to_owned())
+                }
+            }
+
+            if max > ffi::STUHFL_D_GEN2_MAXQ as u8 {
+                return Err("max_q too large: see docs for details".to_owned())
+            }
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Builder, Clone, Copy)]
+pub struct Gen2InvCfg {
+    /// Fast Inventory enabling. If set to false, normal inventory round will be performed.
+    /// If set to true, fast inventory rounds will be performed.
+    #[builder(default="true")]
+    fast: bool,
+    /// Automatic Acknowledgement enabling. If set to false, inventory rounds will be triggered 
+    /// by the firmware, otherwise the commands will be sent automatically.
+    #[builder(default="true")]
+    auto_ack: bool,
+    /// Enable reading TID's during inventory rounds
+    #[builder(default="true")]
+    read_tid: bool,
+}
+
+impl Gen2InvCfg {
+    fn as_ffi(&self) -> ffi::STUHFL_T_ST25RU3993_Gen2_InventoryOption {
+        ffi::STUHFL_T_ST25RU3993_Gen2_InventoryOption {
+            fast: self.fast,
+            autoAck: self.auto_ack,
+            readTID: self.read_tid,
+        }
+    }
+}
+
+
+
 #[derive(Builder)]
 pub struct Gen2Cfg<'a> {
     /// Antenna configuration
     tx_rx_cfg: &'a TxRxCfg,
-    
+    inv_cfg: &'a Gen2InvCfg,
+    adaptive_q: &'a Gen2AdaptiveQ,
 }
 
 mod st25ru3993;

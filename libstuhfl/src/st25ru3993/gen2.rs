@@ -3,7 +3,15 @@ use super::*;
 pub fn configure_gen2(gen2_cfg: &Gen2Cfg) -> Result<(), Error> {
     // Set up tx_rx_cfg
     let mut tx_rx_cfg: ffi::STUHFL_T_ST25RU3993_TxRxCfg = gen2_cfg.tx_rx_cfg.as_ffi();
-    unsafe {proc_err(ffi::Set_TxRxCfg(&mut tx_rx_cfg as _))?}
+    unsafe {proc_err(ffi::Set_TxRxCfg(&mut tx_rx_cfg))?}
+
+    // Set up gen2_inv_cfg
+    let mut inv_gen2_cfg = ffi::STUHFL_T_ST25RU3993_Gen2_InventoryCfg {
+        inventoryOption: gen2_cfg.inv_cfg.as_ffi(),
+        antiCollision: gen2_cfg.adaptive_q.as_ffi(),
+        ..Default::default()
+    };
+    unsafe {proc_err(ffi::Set_Gen2_InventoryCfg(&mut inv_gen2_cfg))?};
 
     // Set up gen2_inventory_cfg
 

@@ -22,11 +22,11 @@ fn version_test() {
 #[test]
 #[serial]
 #[cfg(feature = "reader_tests")]
-fn check_reader_version() -> Result<(), Error> {
+fn check_reader_version() -> Result<(), String> {
 
-    let reader = ST25RU3993::new().expect("Couldn't connect to reader");
+    let reader = ST25RU3993::new()?;
 
-    let version = reader.get_board_version().expect("Couldn't get reader version");
+    let version = reader.get_board_version()?;
 
     println!("Board version: {}", &version);
 
@@ -36,11 +36,11 @@ fn check_reader_version() -> Result<(), Error> {
 #[test]
 #[serial]
 #[cfg(feature = "reader_tests")]
-fn gen2_configure_ffi() -> Result<(), Error> {
+fn gen2_configure_ffi() -> Result<(), String> {
 
-    let mut reader = ST25RU3993::new().expect("Couldn't connect to reader");
+    let mut reader = ST25RU3993::new()?;
 
-    reader.setup_gen2_config(false, true, Antenna::Antenna1).expect("Couldn't configure reader");
+    reader.setup_gen2_config(false, true, Antenna::Antenna1)?;
 
     Ok(())
 }
@@ -50,13 +50,14 @@ fn gen2_configure_ffi() -> Result<(), Error> {
 #[cfg(feature = "reader_tests")]
 fn gen2_configure() -> Result<(), String> {
 
-    let mut reader = ST25RU3993::new().expect("Couldn't connect to reader");
+    let mut reader = ST25RU3993::new()?;
 
-    let tx_rx_cfg = TxRxCfgBuilder::default().build().expect("Failed to build rx_tx_cfg");
+    let tx_rx_cfg = TxRxCfgBuilder::default()
+        .build()?;
 
-    let gen2_config = Gen2Cfg {
-        tx_rx_cfg: &tx_rx_cfg,
-    };
+    let gen2_config = Gen2CfgBuilder::default()
+        .tx_rx_cfg(&tx_rx_cfg)
+        .build()?;
 
     reader.configure_gen2(&gen2_config)?;
 
@@ -67,13 +68,13 @@ fn gen2_configure() -> Result<(), String> {
 #[test]
 #[serial]
 #[cfg(feature = "reader_tests")]
-fn gen2_inventory_ffi() -> Result<(), Error> {
+fn gen2_inventory_ffi() -> Result<(), String> {
 
     // connect to reader
-    let mut reader = ST25RU3993::new().expect("Couldn't connect to reader");
+    let mut reader = ST25RU3993::new()?;
 
     // setup gen2
-    reader.setup_gen2_config(false, true, Antenna::Antenna1).expect("Couldn't configure reader");
+    reader.setup_gen2_config(false, true, Antenna::Antenna1)?;
 
     unsafe {
         // tweak gen2 settings
