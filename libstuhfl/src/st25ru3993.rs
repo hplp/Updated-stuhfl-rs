@@ -13,7 +13,13 @@ mod gen2;
 /// ```no_run
 /// use libstuhfl::{ST25RU3993, Version};
 /// 
+/// // with port scanning
+/// # #[cfg(feature = "port_scanning")]
 /// let mut reader = ST25RU3993::new().expect("Couldn't connect to reader");
+/// 
+/// // without port scanning
+/// # #[cfg(not(feature = "port_scanning"))]
+/// let mut reader = ST25RU3993::from_port("/dev/ttyUSB0").expect("Couldn't connect to reader");
 /// 
 /// let version = reader.get_board_version().expect("Failed to get board version");
 /// 
@@ -172,18 +178,19 @@ impl ST25RU3993 {
 
         // Set up inventory configuration
         let mut inv_cfg = gen2_cfg.inv_cfg.as_ffi();
-        unsafe {proc_err(ffi::Set_Gen2_InventoryCfg(&mut inv_cfg))?};
+        unsafe {proc_err(ffi::Set_Gen2_InventoryCfg(&mut inv_cfg))?}
 
         // Set up protocol configuration
         let mut proto_cfg = gen2_cfg.proto_cfg.as_ffi();
-        unsafe {proc_err(ffi::Set_Gen2_ProtocolCfg(&mut proto_cfg))?};
+        unsafe {proc_err(ffi::Set_Gen2_ProtocolCfg(&mut proto_cfg))?}
 
         // Set up lbt configuraiton
         let mut lbt = gen2_cfg.lbt.as_ffi();
-        unsafe {proc_err(ffi::Set_FreqLBT(&mut lbt))?};
+        unsafe {proc_err(ffi::Set_FreqLBT(&mut lbt))?}
 
         // Set up channel list configuration
-        // TODO
+        let mut channel_list = gen2_cfg.channel_list.as_ffi();
+        unsafe {proc_err(ffi::Set_ChannelList(&mut channel_list))?}
 
         // Set up frequency hopping configuration
         // TODO

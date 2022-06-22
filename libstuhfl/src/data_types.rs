@@ -31,18 +31,17 @@ enum_from_primitive! {
     }
 }
 
-// enum_from_primitive! {
-//     #[derive(Copy, Clone, PartialEq)]
-//     #[repr(u8)]
-//     pub enum Profile {
-//         Custom = ffi::STUHFL_D_PROFILE_CUSTOM as u8,
-//         Europe = ffi::STUHFL_D_PROFILE_EUROPE as u8,
-//         Usa = ffi::STUHFL_D_PROFILE_USA as u8,
-//         Japan = ffi::STUHFL_D_PROFILE_JAPAN as u8,
-//         China = ffi::STUHFL_D_PROFILE_CHINA as u8,
-//         China2 = ffi::STUHFL_D_PROFILE_CHINA2 as u8,
-//     }
-// }
+enum_from_primitive! {
+    #[derive(Copy, Clone, PartialEq)]
+    #[repr(u8)]
+    pub enum Profile {
+        Europe = ffi::STUHFL_D_PROFILE_EUROPE as u8,
+        Usa = ffi::STUHFL_D_PROFILE_USA as u8,
+        Japan = ffi::STUHFL_D_PROFILE_JAPAN as u8,
+        China = ffi::STUHFL_D_PROFILE_CHINA as u8,
+        China2 = ffi::STUHFL_D_PROFILE_CHINA2 as u8,
+    }
+}
 
 enum_from_primitive! {
     #[derive(Copy, Clone, PartialEq)]
@@ -149,7 +148,7 @@ enum_from_primitive! {
     }
 }
 
-#[derive(Clone, PartialEq, PartialOrd)]
+#[derive(Copy, Clone, PartialEq, PartialOrd)]
 pub struct VersionNum {
     pub major: u8,
     pub minor: u8,
@@ -199,7 +198,7 @@ impl fmt::Display for Version {
     }
 }
 
-#[derive(Builder, Clone)]
+#[derive(Builder, Copy, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct TxRxCfg {
     /// Transmission output level (dB). See control register 3 for further info. Valid range [0dB..-19dB].
@@ -248,7 +247,7 @@ impl TxRxCfgBuilder {
     }
 }
 
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub enum Gen2AdaptiveQ {
     /// Configure Adaptive Q
     Enable(Gen2AdaptiveQCfg),
@@ -256,7 +255,7 @@ pub enum Gen2AdaptiveQ {
     Disable(u8)
 }
 
-#[derive(Builder, Clone)]
+#[derive(Builder, Copy, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct Gen2AdaptiveQCfg {
     /// Q Starting value
@@ -331,7 +330,7 @@ impl Gen2AdaptiveQCfgBuilder {
     }
 }
 
-#[derive(Builder, Clone)]
+#[derive(Builder, Copy, Clone)]
 pub struct Gen2InventoryOptions {
     /// Fast Inventory enabling. If set to false, normal inventory round will be performed.
     /// If set to true, fast inventory rounds will be performed.
@@ -358,7 +357,7 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_Gen2_InventoryOption> for Gen2InventoryOptio
     }
 }
 
-#[derive(Builder, Clone)]
+#[derive(Builder, Copy, Clone)]
 pub struct AutoTuning {
     /// Auto-tuning check interval (in inventory rounds)
     #[builder(default="7")]
@@ -387,7 +386,7 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_AutoTuning> for AutoTuning {
     }
 }
 
-#[derive(Builder, Clone)]
+#[derive(Builder, Copy, Clone)]
 pub struct Gen2QueryParams {
     /// QUERY command Sel field
     #[builder(default = "QuerySel::All")]
@@ -467,7 +466,7 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_AdaptiveOutputPower> for AutoTxStrength {
     }
 }
 
-#[derive(Builder, Clone)]
+#[derive(Builder, Copy, Clone)]
 pub struct Gen2InventoryCfg {
     /// Extra inventory options
     #[builder(default = "Gen2InventoryOptionsBuilder::default().build().unwrap()")]
@@ -504,7 +503,7 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_Gen2_InventoryCfg> for Gen2InventoryCfg {
     }
 }
 
-#[derive(Builder, Clone)]
+#[derive(Builder, Copy, Clone)]
 pub struct Gen2ProtocolCfg {
     /// Tari setting
     #[builder(default = "Gen2Tari::Six")]
@@ -534,13 +533,13 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_Gen2_ProtocolCfg> for Gen2ProtocolCfg {
 }
 
 /// Listen Before Talk
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub enum Lbt {
     Enable(LbtCfg),
     Disable,
 }
 
-#[derive(Builder, Clone)]
+#[derive(Builder, Copy, Clone)]
 pub struct LbtCfg {
     /// Length of listening period
     #[builder(default = "1")]
@@ -572,7 +571,109 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_FreqLBT> for Lbt {
     }
 }
 
-#[derive(Builder)]
+// Capacitance values of self-jamming PI-capacitor network
+#[derive(Copy, Clone)]
+pub struct TuningCaps {
+    /// IN capacitance of tuning network
+    cin: u8,
+    /// LEN capacitance of tuning network
+    clen: u8,
+    /// OUT capacitance of tuning network
+    cout: u8,
+}
+
+impl Default for TuningCaps {
+    fn default() -> Self {
+        Self {
+            cin: ffi::STUHFL_D_DEFAULT_CAP as u8,
+            clen: ffi::STUHFL_D_DEFAULT_CAP as u8,
+            cout: ffi::STUHFL_D_DEFAULT_CAP as u8,
+        }
+    }
+}
+
+impl TuningCaps {
+    pub fn from(cin: u8, clen: u8, cout: u8) -> Self {
+        Self {
+            cin, clen, cout,
+        }
+    }
+}
+
+impl AsFFI<ffi::STUHFL_T_ST25RU3993_Caps> for TuningCaps {
+    fn as_ffi(&self) -> ffi::STUHFL_T_ST25RU3993_Caps {
+        ffi::STUHFL_T_ST25RU3993_Caps {
+            cin: self.cin,
+            clen: self.clen,
+            cout: self.cout,
+        }
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct ChannelItem {
+    /// Frequency to be used for channel item (Hz)
+    frequency: u32,
+    /// Tuning capacitor values
+    caps: [TuningCaps; 2],
+}
+
+impl ChannelItem {
+    pub fn from_freq(frequency: u32) -> Self {
+        Self {
+            frequency,
+            caps: [TuningCaps::default(); 2],
+        }
+    }
+
+    pub fn from(frequency: u32, caps: [TuningCaps; 2]) -> Self {
+        Self {
+            frequency,
+            caps,
+        }
+    }
+}
+
+impl AsFFI<ffi::STUHFL_T_ST25RU3993_ChannelItem> for ChannelItem {
+    fn as_ffi(&self) -> ffi::STUHFL_T_ST25RU3993_ChannelItem {
+        ffi::STUHFL_T_ST25RU3993_ChannelItem {
+            frequency: self.frequency,
+            caps: [self.caps[0].as_ffi(), self.caps[1].as_ffi()],
+            ..Default::default()
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct ChannelList {
+    item_list: Vec<ChannelItem>,
+}
+
+impl ChannelList {
+    pub fn from(item_list: &[ChannelItem]) -> Self {
+        Self {
+            item_list: Vec::from(item_list)
+        }
+    }
+
+    pub fn from_profile(profile: Profile) -> Self {
+        Self {
+            item_list: profile_to_item_list(profile)
+        }
+    }
+}
+
+impl AsFFI<ffi::STUHFL_T_ST25RU3993_ChannelList> for ChannelList {
+    fn as_ffi(&self) -> ffi::STUHFL_T_ST25RU3993_ChannelList {
+        ffi::STUHFL_T_ST25RU3993_ChannelList {
+            numFrequencies: self.item_list.len() as u8,
+            itemList: item_list_to_ffi(&self.item_list), // TODO
+            ..Default::default()
+        }
+    }
+}
+
+#[derive(Builder, Clone)]
 pub struct Gen2Cfg {
     /// Antenna configuration
     #[builder(default = "TxRxCfgBuilder::default().build().unwrap()")]
@@ -586,6 +687,9 @@ pub struct Gen2Cfg {
     /// Listen before talk configuration
     #[builder(default = "Lbt::Disable")]
     pub(crate) lbt: Lbt,
+    /// Channel list configuration
+    #[builder(default = "ChannelList::from_profile(Profile::Europe)")]
+    pub(crate) channel_list: ChannelList,
 }
 
 impl Builder<Gen2CfgBuilder> for Gen2Cfg {}
