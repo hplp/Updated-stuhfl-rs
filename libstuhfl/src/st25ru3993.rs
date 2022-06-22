@@ -9,6 +9,16 @@ enum Protocol {
 
 mod gen2;
 
+/// Represents an ST25RU3993 Reader.
+/// ```no_run
+/// use libstuhfl::{ST25RU3993, Version};
+/// 
+/// let mut reader = ST25RU3993::new().expect("Couldn't connect to reader");
+/// 
+/// let version = reader.get_board_version().expect("Failed to get board version");
+/// 
+/// println!("Reader version: {}", &version);
+/// ```
 pub struct ST25RU3993 {
     protocol: Option<Protocol>,
 }

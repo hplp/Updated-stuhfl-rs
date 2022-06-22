@@ -4,6 +4,21 @@ pub(crate) trait AsFFI<T> {
     fn as_ffi(&self) -> T;
 }
 
+/// Returns a builder to create the structure
+/// ```
+/// use libstuhfl::{Gen2Cfg, Builder};
+/// 
+/// let cfg = Gen2Cfg::builder()
+///     .build()
+///     .expect("Failed to build configuration");
+/// ```
+pub trait Builder<T>
+where T: Default {
+    fn builder() -> T {
+        T::default()
+    }
+}
+
 enum_from_primitive! {
     #[derive(Copy, Clone, PartialEq)]
     #[repr(u8)]
@@ -87,7 +102,7 @@ enum_from_primitive! {
     #[derive(Copy, Clone, PartialEq)]
     #[repr(u8)]
     /// TARI values are the length of time to represent a
-    /// binary 0 using the Gen 2 standard
+    /// binary 0 using the Gen 2 standard (in microseconds)
     pub enum Gen2Tari {
         /// 6.25 μs
         Six = ffi::STUHFL_D_GEN2_TARI_6_25 as u8,
@@ -101,7 +116,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     #[derive(Copy, Clone, PartialEq)]
     #[repr(u8)]
-    /// BLF is the Backscatter Link Frequency of the transmission
+    /// BLF is the Backscatter Link Frequency of the transmission (in kHz)
     pub enum Gen2Blf {
         /// 40 kHz
         Forty = ffi::STUHFL_D_GEN2_BLF_40 as u8,
@@ -184,8 +199,6 @@ impl fmt::Display for Version {
     }
 }
 
-pub struct TxOutputLevel (i8);
-
 #[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct TxRxCfg {
@@ -202,6 +215,8 @@ pub struct TxRxCfg {
     #[builder(default="1")]
     alternate_antenna_interval: u16,
 }
+
+impl Builder<TxRxCfgBuilder> for TxRxCfg {}
 
 impl AsFFI<ffi::STUHFL_T_ST25RU3993_TxRxCfg> for TxRxCfg {
     fn as_ffi(&self) -> ffi::STUHFL_T_ST25RU3993_TxRxCfg {
@@ -267,6 +282,8 @@ pub struct Gen2AdaptiveQCfg {
     reset_after_round: bool,
 }
 
+impl Builder<Gen2AdaptiveQCfgBuilder> for Gen2AdaptiveQCfg {}
+
 impl AsFFI<ffi::STUHFL_T_ST25RU3993_Gen2_Anticollision> for Gen2AdaptiveQ {
     fn as_ffi(&self) -> ffi::STUHFL_T_ST25RU3993_Gen2_Anticollision {
         match self {
@@ -329,6 +346,8 @@ pub struct Gen2InventoryOptions {
     read_tid: bool,
 }
 
+impl Builder<Gen2InventoryOptionsBuilder> for Gen2InventoryOptions {}
+
 impl AsFFI<ffi::STUHFL_T_ST25RU3993_Gen2_InventoryOption> for Gen2InventoryOptions {
     fn as_ffi(&self) -> ffi::STUHFL_T_ST25RU3993_Gen2_InventoryOption {
         ffi::STUHFL_T_ST25RU3993_Gen2_InventoryOption {
@@ -354,6 +373,8 @@ pub struct AutoTuning {
     #[builder(default="true")]
     false_positive_detect: bool,
 }
+
+impl Builder<AutoTuningBuilder> for AutoTuning {}
 
 impl AsFFI<ffi::STUHFL_T_ST25RU3993_AutoTuning> for AutoTuning {
     fn as_ffi(&self) -> ffi::STUHFL_T_ST25RU3993_AutoTuning {
@@ -387,6 +408,8 @@ pub struct Gen2QueryParams {
     #[builder(default = "true")]
     target_depletion_mode: bool,
 }
+
+impl Builder<Gen2QueryParamsBuilder> for Gen2QueryParams {}
 
 impl AsFFI<ffi::STUHFL_T_ST25RU3993_Gen2_QueryParams> for Gen2QueryParams {
     fn as_ffi(&self) -> ffi::STUHFL_T_ST25RU3993_Gen2_QueryParams {
@@ -466,6 +489,8 @@ pub struct Gen2InventoryCfg {
     auto_tx_strength: AutoTxStrength,
 }
 
+impl Builder<Gen2InventoryCfgBuilder> for Gen2InventoryCfg {}
+
 impl AsFFI<ffi::STUHFL_T_ST25RU3993_Gen2_InventoryCfg> for Gen2InventoryCfg {
     fn as_ffi(&self) -> ffi::STUHFL_T_ST25RU3993_Gen2_InventoryCfg {
         ffi::STUHFL_T_ST25RU3993_Gen2_InventoryCfg {
@@ -494,6 +519,8 @@ pub struct Gen2ProtocolCfg {
     #[builder(default = "ffi::STUHFL_D_TREXT_ON != 0")]
     trext: bool,
 }
+
+impl Builder<Gen2ProtocolCfgBuilder> for Gen2ProtocolCfg {}
 
 impl AsFFI<ffi::STUHFL_T_ST25RU3993_Gen2_ProtocolCfg> for Gen2ProtocolCfg {
     fn as_ffi(&self) -> ffi::STUHFL_T_ST25RU3993_Gen2_ProtocolCfg {
@@ -525,6 +552,8 @@ pub struct LbtCfg {
     #[builder(default = "31")]
     rssi_log_threshold: u8,
 }
+
+impl Builder<LbtCfgBuilder> for LbtCfg {}
 
 impl AsFFI<ffi::STUHFL_T_ST25RU3993_FreqLBT> for Lbt {
     fn as_ffi(&self) -> ffi::STUHFL_T_ST25RU3993_FreqLBT {
@@ -558,3 +587,5 @@ pub struct Gen2Cfg {
     #[builder(default = "Lbt::Disable")]
     pub(crate) lbt: Lbt,
 }
+
+impl Builder<Gen2CfgBuilder> for Gen2Cfg {}

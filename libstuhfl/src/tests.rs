@@ -25,6 +25,9 @@ fn builder_test() -> Result<(), Box<dyn std::error::Error>> {
     // Builder should have valid defaults for all configuration values
     Gen2CfgBuilder::default().build()?;
 
+    // Alternative syntax: get default builder from Gen2Cfg itself
+    Gen2Cfg::builder().build()?;
+
     Ok(())
 }
 
@@ -67,7 +70,6 @@ fn gen2_configure() -> Result<(), String> {
     reader.configure_gen2(&gen2_config)?;
 
     Ok(())
-
 }
 
 #[test]
