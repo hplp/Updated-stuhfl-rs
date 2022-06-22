@@ -148,6 +148,23 @@ enum_from_primitive! {
     }
 }
 
+enum_from_primitive! {
+    #[derive(Copy, Clone, PartialEq)]
+    #[repr(u8)]
+    /// Frequency hopping modes
+    pub enum FreqHopMode {
+        /// Only the max sending time is considered
+        IgnoreMin = ffi::STUHFL_D_FREQUENCY_HOP_MODE_IGNORE_MIN as u8,
+        /// Power off when min_sending_time is expired and wait until maxSendingTime before frequency is hopped
+        PowerSave = ffi::STUHFL_D_FREQUENCY_HOP_MODE_POWER_SAVE as u8,
+        /// Perform hopping as soon as min_sending_time is expired and continue with next hopping frequency
+        Fast = ffi::STUHFL_D_FREQUENCY_HOP_MODE_FAST as u8,
+        /// Perform hopping as described in Fast mode, but take care that all frequencies get the same time 
+        /// in total to avoid violating FCC rules
+        FastFcc = ffi::STUHFL_D_FREQUENCY_HOP_MODE_FAST_FCC as u8,
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, PartialOrd)]
 pub struct VersionNum {
     pub major: u8,
@@ -645,11 +662,11 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_ChannelItem> for ChannelItem {
 }
 
 #[derive(Clone)]
-pub struct ChannelList {
+pub struct ChannelListCfg {
     item_list: Vec<ChannelItem>,
 }
 
-impl ChannelList {
+impl ChannelListCfg {
     pub fn from(item_list: &[ChannelItem]) -> Self {
         Self {
             item_list: Vec::from(item_list)
@@ -663,7 +680,7 @@ impl ChannelList {
     }
 }
 
-impl AsFFI<ffi::STUHFL_T_ST25RU3993_ChannelList> for ChannelList {
+impl AsFFI<ffi::STUHFL_T_ST25RU3993_ChannelList> for ChannelListCfg {
     fn as_ffi(&self) -> ffi::STUHFL_T_ST25RU3993_ChannelList {
         ffi::STUHFL_T_ST25RU3993_ChannelList {
             numFrequencies: self.item_list.len() as u8,
@@ -673,23 +690,51 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_ChannelList> for ChannelList {
     }
 }
 
+#[derive(Builder, Copy, Clone)]
+pub struct FreqHopCfg {
+    /// Max sending time before frequency hopping is performed. Minimum value: 40ms
+    #[builder(default = "400")]
+    max_sending_time: u16,
+    /// Minimum sending time before frequency hopping is performed.
+    #[builder(default = "400")]
+    min_sending_time: u16,
+    /// Hopping Mode
+    mode: FreqHopMode,
+}
+
+impl Builder<FreqHopCfgBuilder> for FreqHopCfg {}
+
+impl AsFFI<ffi::STUHFL_T_ST25RU3993_FreqHop> for FreqHopCfg {
+    fn as_ffi(&self) -> ffi::STUHFL_T_ST25RU3993_FreqHop {
+        ffi::STUHFL_T_ST25RU3993_FreqHop {
+            maxSendingTime: self.max_sending_time,
+            minSendingTime: self.min_sending_time,
+            mode: self.mode as u8,
+            ..Default::default()
+        }
+    }
+}
+
 #[derive(Builder, Clone)]
 pub struct Gen2Cfg {
     /// Antenna configuration
-    #[builder(default = "TxRxCfgBuilder::default().build().unwrap()")]
+    #[builder(default = "TxRxCfg::builder().build().unwrap()")]
     pub(crate) tx_rx_cfg: TxRxCfg,
     /// Settings for inventorying tags
-    #[builder(default = "Gen2InventoryCfgBuilder::default().build().unwrap()")]
+    #[builder(default = "Gen2InventoryCfg::builder().build().unwrap()")]
     pub(crate) inv_cfg: Gen2InventoryCfg,
     /// Gen2 protocol configuration
-    #[builder(default = "Gen2ProtocolCfgBuilder::default().build().unwrap()")]
+    #[builder(default = "Gen2ProtocolCfg::builder().build().unwrap()")]
     pub(crate) proto_cfg: Gen2ProtocolCfg,
     /// Listen before talk configuration
     #[builder(default = "Lbt::Disable")]
     pub(crate) lbt: Lbt,
     /// Channel list configuration
-    #[builder(default = "ChannelList::from_profile(Profile::Europe)")]
-    pub(crate) channel_list: ChannelList,
+    #[builder(default = "ChannelListCfg::from_profile(Profile::Europe)")]
+    pub(crate) channel_list: ChannelListCfg,
+    /// Frequency hopping configuration
+    #[builder(default = "FreqHopCfg::builder().build().unwrap()")]
+    pub(crate) freq_hop: FreqHopCfg,
 }
 
 impl Builder<Gen2CfgBuilder> for Gen2Cfg {}

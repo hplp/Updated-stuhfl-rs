@@ -1,5 +1,7 @@
 use super::*;
 
+type TestResult = Result<(), Box<dyn std::error::Error>>;
+
 #[cfg(feature = "reader_tests")]
 extern crate serial_test;
 #[cfg(feature = "reader_tests")]
@@ -20,7 +22,7 @@ fn version_test() {
 }
 
 #[test]
-fn builder_test() -> Result<(), Box<dyn std::error::Error>> {
+fn builder_test() -> TestResult {
 
     // Builder should have valid defaults for all configuration values
     Gen2CfgBuilder::default().build()?;
@@ -34,7 +36,7 @@ fn builder_test() -> Result<(), Box<dyn std::error::Error>> {
 #[test]
 #[serial]
 #[cfg(feature = "reader_tests")]
-fn check_reader_version() -> Result<(), String> {
+fn check_reader_version() -> TestResult {
 
     let reader = ST25RU3993::new()?;
 
@@ -48,74 +50,79 @@ fn check_reader_version() -> Result<(), String> {
 #[test]
 #[serial]
 #[cfg(feature = "reader_tests")]
-fn gen2_configure_ffi() -> Result<(), String> {
+fn gen2_configure() -> TestResult {
 
     let mut reader = ST25RU3993::new()?;
 
-    reader.setup_gen2_config(false, true, Antenna::Antenna1)?;
-
-    Ok(())
-}
-
-#[test]
-#[serial]
-#[cfg(feature = "reader_tests")]
-fn gen2_configure() -> Result<(), String> {
-
-    let mut reader = ST25RU3993::new()?;
-
-    let gen2_config = Gen2CfgBuilder::default()
+    let gen2_config = Gen2Cfg::builder()
         .build()?;
 
     reader.configure_gen2(&gen2_config)?;
 
+    reader.tune_freqs(TuningAlgorithm::Exact)?;
+
     Ok(())
 }
 
 #[test]
 #[serial]
 #[cfg(feature = "reader_tests")]
-fn gen2_inventory_ffi() -> Result<(), String> {
+fn gen2_inventory_ffi() -> TestResult {
 
     // connect to reader
     let mut reader = ST25RU3993::new()?;
 
-    // setup gen2
-    reader.setup_gen2_config(false, true, Antenna::Antenna1)?;
+    // set adaptive q settings
+    let adaptive_q_cfg = Gen2AdaptiveQCfg::builder()
+        .start_q(4)
+        .build()?;
+    
+    // set query parameters
+    let query_params = Gen2QueryParams::builder()
+        .target_depletion_mode(false)
+        .build()?;
 
-    unsafe {
-        // tweak gen2 settings
-        let mut inv_gen2_cfg = ffi::STUHFL_T_ST25RU3993_Gen2_InventoryCfg::default();
-        inv_gen2_cfg.antiCollision.startQ = 4;
-        inv_gen2_cfg.antiCollision.adaptiveQ = true;
-        inv_gen2_cfg.queryParams.targetDepletionMode = false;
+    // set inventory configuration
+    let inventory_cfg = Gen2InventoryCfg::builder()
+        .adaptive_q(Gen2AdaptiveQ::Enable(adaptive_q_cfg))
+        .query_params(query_params)
+        .build()?;
 
-        // save gen2 settings
-        proc_err(ffi::Set_Gen2_InventoryCfg(&mut inv_gen2_cfg))?;
+    // set gen2 configuration
+    let gen2_cfg = Gen2Cfg::builder()
+        .inv_cfg(inventory_cfg)
+        .build()?;
+    
+    // apply the settings
+    reader.configure_gen2(&gen2_cfg)?;
 
-        // create tag data storage location
-        let mut tag_data: [ffi::STUHFL_T_InventoryTag; ffi::STUHFL_D_MAX_TAG_LIST_SIZE as usize] = std::mem::zeroed();
+    // tune reader
+    reader.tune_freqs(TuningAlgorithm::None)?;
 
-        // create tag data storage container
-        let mut inv_data = ffi::STUHFL_T_InventoryData{
-            tagList: &mut tag_data as _,
-            tagListSizeMax: ffi::STUHFL_D_MAX_TAG_LIST_SIZE as u16,
-            ..Default::default()
-        };
+    // create tag data storage location
+    let mut tag_data: [ffi::STUHFL_T_InventoryTag; ffi::STUHFL_D_MAX_TAG_LIST_SIZE as usize] = unsafe{std::mem::zeroed()};
 
-        // customize inventory options
-        let mut inv_option = ffi::STUHFL_T_InventoryOption{
-            roundCnt: 2000,
-            ..Default::default()
-        };
-        inv_option.options |= ffi::STUHFL_D_INVENTORYREPORT_OPTION_HEARTBEAT as u8;
+    // create tag data storage container
+    let mut inv_data = ffi::STUHFL_T_InventoryData{
+        tagList: &mut tag_data as _,
+        tagListSizeMax: tag_data.len() as u16,
+        ..Default::default()
+    };
 
-        proc_err(ffi::Gen2_Inventory(&mut inv_option, &mut inv_data))?;
+    // customize inventory options
+    let mut inv_option = ffi::STUHFL_T_InventoryOption{
+        roundCnt: 2000,
+        ..Default::default()
+    };
+    inv_option.options |= ffi::STUHFL_D_INVENTORYREPORT_OPTION_HEARTBEAT as u8;
 
-        println!("Inventory Info:\n{:#?}", inv_data);
+    unsafe{proc_err(ffi::Gen2_Inventory(&mut inv_option, &mut inv_data))?}
 
-        println!("Tag Info:\n{:?}", tag_data);
-    }
+    println!("Inventory Info:\n{:#?}", inv_data);
+
+    let tag_cnt = inv_data.statistics.tagCnt as usize;
+
+    println!("Tag Info:\n{:#?}", &tag_data[0..tag_cnt]);
 
     Ok(())
 }

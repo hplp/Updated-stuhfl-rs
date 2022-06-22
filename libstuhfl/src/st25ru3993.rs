@@ -7,8 +7,6 @@ enum Protocol {
     Iso6b
 }
 
-mod gen2;
-
 /// Represents an ST25RU3993 Reader.
 /// ```no_run
 /// use libstuhfl::{ST25RU3993, Version};
@@ -50,8 +48,6 @@ impl ST25RU3993 {
         }
         
         let found_port = found_port.expect("Reader not found on any ports");
-
-        dbg!("Found port: {}", &found_port);
 
         // hand over creation to normal constructor
         ST25RU3993::from_port(&found_port)
@@ -136,37 +132,28 @@ impl ST25RU3993 {
         Ok(ver.sw_ver >= LOWEST_SW_VER && ver.hw_ver >= LOWEST_HW_VER)
     }
 
-    /// Private function to run the specified tuning algorithm on the reader
-    fn tune_freqs(&mut self, algo: TuningAlgorithm) -> Result<(), Error> {
+    /// Tune the reader using the specified tuning algorithm
+    pub fn tune_freqs(&mut self, algo: TuningAlgorithm) -> Result<(), Error> {
+        // None does nothing
         if algo == TuningAlgorithm::None {
             return Ok(())
         }
 
-        unsafe {
-            let mut tx_rx_cfg = ffi::STUHFL_T_ST25RU3993_TxRxCfg::default();
+        // Get the current reader settings, we need to know which antenna is in use
+        let mut tx_rx_cfg = ffi::STUHFL_T_ST25RU3993_TxRxCfg::default();
+        unsafe {proc_err(ffi::Get_TxRxCfg(&mut tx_rx_cfg))?}
 
-            proc_err(ffi::Get_TxRxCfg(&mut tx_rx_cfg))?;
+        // Create a tune configuration using the antenna & algorithm
+        let mut tune_cfg = ffi::STUHFL_T_ST25RU3993_TuneCfg{
+            antenna: tx_rx_cfg.usedAntenna,
+            algorithm: algo as u8,
+            tuneAll: true,
+            ..Default::default()
+        };
+        
+        // Tune the reader using the configuration
+        unsafe {proc_err(ffi::TuneChannel(&mut tune_cfg))?}
 
-            let mut tune_cfg = ffi::STUHFL_T_ST25RU3993_TuneCfg{
-                antenna: tx_rx_cfg.usedAntenna,
-                algorithm: algo as u8,
-                tuneAll: true,
-                ..Default::default()
-            };
-            
-            proc_err(ffi::TuneChannel(&mut tune_cfg))?;
-        }
-
-        Ok(())
-    }
-
-    /// Recreates the setupGen2Config() command found in the STUHFL demo program
-    #[warn(deprecated)]
-    pub fn setup_gen2_config(&mut self, single_tag: bool, freq_hopping: bool, antenna: Antenna) -> Result<(), Error> {
-        gen2::setup_gen2_config(self, single_tag, freq_hopping, antenna)?;
-
-        // Reader successfully set up gen2 configuration
-        self.protocol = Some(Protocol::Gen2);
         Ok(())
     }
 
@@ -193,10 +180,15 @@ impl ST25RU3993 {
         unsafe {proc_err(ffi::Set_ChannelList(&mut channel_list))?}
 
         // Set up frequency hopping configuration
-        // TODO
+        let mut freq_hop = gen2_cfg.freq_hop.as_ffi();
+        unsafe {proc_err(ffi::Set_FreqHop(&mut freq_hop))?}
 
-        // Set up select configuraiton
-        // TODO
+        // Clear select configuration
+        let mut gen2_select = ffi::STUHFL_T_Gen2_Select{
+            mode: ffi::STUHFL_D_GEN2_SELECT_MODE_CLEAR_LIST as u8,
+            ..Default::default()
+        };
+        unsafe {proc_err(ffi::Gen2_Select(&mut gen2_select))?}
 
         // Enable Gen2 protocol commands for reader
         self.protocol = Some(Protocol::Gen2);
