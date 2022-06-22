@@ -699,6 +699,7 @@ pub struct FreqHopCfg {
     #[builder(default = "400")]
     min_sending_time: u16,
     /// Hopping Mode
+    #[builder(default = "FreqHopMode::IgnoreMin")]
     mode: FreqHopMode,
 }
 
