@@ -166,7 +166,7 @@ enum_from_primitive! {
 }
 
 enum_from_primitive! {
-    #[derive(Copy, Clone, PartialEq)]
+    #[derive(Copy, Clone, PartialEq, Debug)]
     #[repr(u8)]
     /// Tuning Status
     pub enum TuningStatus {
@@ -776,7 +776,7 @@ impl fmt::Display for HexID {
     }
 }
 
-type Xpc = HexID;
+pub type Xpc = HexID;
 
 impl From<ffi::STUHFL_T_InventoryTagXPC> for Xpc {
     fn from(xpc: ffi::STUHFL_T_InventoryTagXPC) -> Xpc {
@@ -784,7 +784,7 @@ impl From<ffi::STUHFL_T_InventoryTagXPC> for Xpc {
     }
 }
 
-type Epc = HexID;
+pub type Epc = HexID;
 
 impl From<ffi::STUHFL_T_InventoryTagEPC> for Epc {
     fn from(epc: ffi::STUHFL_T_InventoryTagEPC) -> Epc {
@@ -792,7 +792,7 @@ impl From<ffi::STUHFL_T_InventoryTagEPC> for Epc {
     }
 }
 
-type Tid = HexID;
+pub type Tid = HexID;
 
 impl From<ffi::STUHFL_T_InventoryTagTID> for Tid {
     fn from(tid: ffi::STUHFL_T_InventoryTagTID) -> Tid {
@@ -847,7 +847,7 @@ impl From<ffi::STUHFL_T_InventoryTag> for InventoryTag {
     }
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub struct InventoryStatistics {
     /// Timestamp since last statistics update.
     pub timestamp: u32,

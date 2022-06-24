@@ -36,9 +36,9 @@ fn builder_test() -> TestResult {
 fn hex_id_test() -> TestResult {
     let id: Vec<u8> = vec![226, 0, 66, 22, 97, 128, 96, 21, 0, 149, 24, 56];
 
-    let xpc = HexID::from_id(id);
+    let epc = Epc::from_id(id);
 
-    assert_eq!(xpc.to_string(), "E2:00:42:16:61:80:60:15:00:95:18:38");
+    assert_eq!(epc.to_string(), "E2:00:42:16:61:80:60:15:00:95:18:38");
 
     Ok(())
 }
@@ -82,6 +82,12 @@ fn gen2_inventory_ffi() -> TestResult {
     // connect to reader
     let mut reader = ST25RU3993::new()?;
 
+    // set antenna settings
+    let tx_rx_cfg = TxRxCfg::builder()
+        .rx_sensitivity_level(19)
+        .tx_output_level(0)
+        .build()?;
+
     // set adaptive q settings
     let adaptive_q_cfg = Gen2AdaptiveQCfg::builder()
         .start_q(4)
@@ -89,7 +95,7 @@ fn gen2_inventory_ffi() -> TestResult {
     
     // set query parameters
     let query_params = Gen2QueryParams::builder()
-        .target_depletion_mode(false)
+        .target_depletion_mode(true)
         .build()?;
 
     // set inventory configuration
@@ -98,9 +104,17 @@ fn gen2_inventory_ffi() -> TestResult {
         .query_params(query_params)
         .build()?;
 
+    // set protocol configuration
+    let proto_cfg = Gen2ProtocolCfg::builder()
+        .blf(Gen2Blf::TwoHundredFiftySix)
+        .coding(Gen2Coding::Miller8)
+        .build()?;
+
     // set gen2 configuration
     let gen2_cfg = Gen2Cfg::builder()
         .inv_cfg(inventory_cfg)
+        .tx_rx_cfg(tx_rx_cfg)
+        .proto_cfg(proto_cfg)
         .build()?;
     
     // apply the settings
@@ -110,10 +124,14 @@ fn gen2_inventory_ffi() -> TestResult {
     reader.tune_freqs(TuningAlgorithm::Exact)?;
     
     // run inventory
-    let (statisitcs, tags) = reader.inventory(1)?;
+    let (statitistics, tags) = reader.inventory()?;
 
-    println!("Inventory Statistics:\n{:#?}", statisitcs);
-    println!("Found tags:\n{}", tags.iter().map(|tag| tag.epc));
+    println!("Inventory Statistics:\n{:#?}", statitistics);
+    println!("Found tags:");
+
+    for tag in tags {
+        println!("{}", tag.epc);
+    }
 
     Ok(())
 }
