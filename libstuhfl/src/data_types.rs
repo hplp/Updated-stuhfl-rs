@@ -165,6 +165,20 @@ enum_from_primitive! {
     }
 }
 
+enum_from_primitive! {
+    #[derive(Copy, Clone, PartialEq)]
+    #[repr(u8)]
+    /// Tuning Status
+    pub enum TuningStatus {
+        /// Untuned
+        Untuned = ffi::STUHFL_D_TUNING_STATUS_UNTUNED as u8,
+        /// Tuning
+        Tuning = ffi::STUHFL_D_TUNING_STATUS_TUNING as u8,
+        /// Tuned
+        Tuned = ffi::STUHFL_D_TUNING_STATUS_TUNED as u8,
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, PartialOrd)]
 pub struct VersionNum {
     pub major: u8,
@@ -786,32 +800,32 @@ impl From<ffi::STUHFL_T_InventoryTagTID> for Tid {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct InventoryTag {
     /// Tag detection slot ID
-    slot_id: u32,
+    pub slot_id: u32,
     /// Tag detection time stamp in ms after starting inventory
-    timestamp: u32,
+    pub timestamp: u32,
     /// Antenna at which tag was detected
-    antenna: Antenna,
+    pub antenna: Antenna,
     /// AGC (Automatic Gain Control) measured when tag found
-    agc: u8,
+    pub agc: u8,
     /// I part of tag logarithmic RSSI
-    rssi_log_i: u8,
+    pub rssi_log_i: u8,
     /// Q part of tag logarithmic RSSI
-    rssi_log_q: u8,
+    pub rssi_log_q: u8,
     /// I part of tag linear RSSI
-    rssi_lin_i: i8,
+    pub rssi_lin_i: i8,
     /// Q part of tag linear RSSI
-    rssi_lin_q: i8,
+    pub rssi_lin_q: i8,
     /// Tag PC
-    pc: [u8; 2],
+    pub pc: [u8; 2],
     /// Tag XPC
-    xpc: Xpc,
+    pub xpc: Xpc,
     /// Tag EPC
-    epc: Epc,
+    pub epc: Epc,
     /// Tag TID
-    tid: Tid,
+    pub tid: Tid,
 }
 
 impl From<ffi::STUHFL_T_InventoryTag> for InventoryTag {
@@ -833,8 +847,65 @@ impl From<ffi::STUHFL_T_InventoryTag> for InventoryTag {
     }
 }
 
-/*impl fmt::Display for InventoryTag {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Slot id: {}\nTimestamp: {}\nAntenna: {}\n, AGC: {}\nRSSI logI: {}")
+#[derive(Copy, Clone, PartialEq)]
+pub struct InventoryStatistics {
+    /// Timestamp since last statistics update.
+    pub timestamp: u32,
+    /// Inventory rounds already complete.
+    pub round_count: u32,
+    /// Reader tuning status.
+    pub tuning_status: TuningStatus,
+    /// RSSI log mean value. Updated with each found tag.
+    pub rssi_log_mean: u8,
+    /// Reader sensitivity.
+    pub sensitivity: i8,
+    /// Current Q, may vary if adaptive Q is enabled.
+    pub final_q: u8,
+    /// Currently used frequency.
+    pub frequency: u32,
+    /// ADC value, measured between each round.
+    pub adc: u16,
+    /// Number of detected tags.
+    pub tag_count: u32,
+    /// Number of empty slots.
+    pub empty_slot_count: u32,
+    /// Number of executed slots.
+    pub slot_count: u32,
+    /// Number of collisions.
+    pub collision_count: u32,
+    /// Number of Header errors.
+    pub preamble_err_count: u32,
+    /// Number of CRC errors
+    pub crc_err_count: u32,
+    /// Number of RX count errorsnd due to error during EPC reception.
+    pub rx_count_err_count: u32,
+    /// Number of ACK resends due to error duing EPC reception.
+    pub resend_ack_count: u32,
+    /// Number of noise suspicon events. 
+    /// Event is triggered when ACK is resended and no response is recieved.
+    pub noise_suspicion_count: u32,
+}
+
+impl From<ffi::STUHFL_T_InventoryStatistics> for InventoryStatistics {
+    fn from(stats: ffi::STUHFL_T_InventoryStatistics) -> InventoryStatistics {
+        InventoryStatistics {
+            timestamp: stats.timestamp,
+            round_count: stats.roundCnt,
+            tuning_status: TuningStatus::from_u8(stats.tuningStatus).unwrap(),
+            rssi_log_mean: stats.rssiLogMean,
+            sensitivity: stats.sensitivity,
+            final_q: stats.Q,
+            frequency: stats.frequency,
+            adc: stats.adc,
+            tag_count: stats.tagCnt,
+            empty_slot_count: stats.emptySlotCnt,
+            slot_count: stats.slotCnt,
+            collision_count: stats.collisionCnt,
+            preamble_err_count: stats.preambleErrCnt,
+            crc_err_count: stats.crcErrCnt,
+            rx_count_err_count: stats.rxCountErrCnt,
+            resend_ack_count: stats.resendAckCnt,
+            noise_suspicion_count: stats.noiseSuspicionCnt,
+        }
     }
-}*/
+}

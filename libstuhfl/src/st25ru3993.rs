@@ -205,7 +205,7 @@ impl ST25RU3993 {
     }
 
     /// Inventories tags for the selected protocol. Note: be sure to configure a protocol & tune the reader first!
-    pub fn inventory(&mut self) -> Result<Vec<InventoryTag>, Error> {
+    pub fn inventory(&mut self, round_count: usize) -> Result<(InventoryStatistics, Vec<InventoryTag>), Error> {
         if self.protocol.is_none() { return Err(Error::None) };
 
         // create tag data storage location
@@ -224,18 +224,23 @@ impl ST25RU3993 {
             ..Default::default()
         };
 
-        //inv_option.options |= ffi::STUHFL_D_INVENTORYREPORT_OPTION_HEARTBEAT as u8;
+        let mut tags = Vec::new();
 
-        // run the inventory
-        unsafe{proc_err(ffi::Gen2_Inventory(&mut inv_option, &mut inv_data))?}
+        for _ in 0..round_count {
+            // run the inventory
+            unsafe{proc_err(ffi::Gen2_Inventory(&mut inv_option, &mut inv_data))?}
 
-        // transform data into vector of InventoryTag
-        let tags = tag_data[0..inv_data.statistics.tagCnt as usize]
-            .iter()
-            .map(|tag| InventoryTag::from(*tag))
-            .collect();
+            // save data into iterator
+            let new_tags = tag_data[0..inv_data.statistics.tagCnt as usize]
+                .iter()
+                .map(|tag| InventoryTag::from(*tag));
 
-        Ok(tags)
+            tags.extend(new_tags);
+        }
+
+        let statistics = InventoryStatistics::from(inv_data.statistics);
+
+        Ok((statistics, tags))
     }
 }
 

@@ -107,12 +107,13 @@ fn gen2_inventory_ffi() -> TestResult {
     reader.configure_gen2(&gen2_cfg)?;
 
     // tune reader
-    reader.tune_freqs(TuningAlgorithm::None)?;
+    reader.tune_freqs(TuningAlgorithm::Exact)?;
     
     // run inventory
-    let tags = reader.inventory()?;
+    let (statisitcs, tags) = reader.inventory(1)?;
 
-    println!("Found tags:\n{:#?}", tags);
+    println!("Inventory Statistics:\n{:#?}", statisitcs);
+    println!("Found tags:\n{}", tags.iter().map(|tag| tag.epc));
 
     Ok(())
 }
