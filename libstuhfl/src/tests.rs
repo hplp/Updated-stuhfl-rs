@@ -23,12 +23,22 @@ fn version_test() {
 
 #[test]
 fn builder_test() -> TestResult {
-
     // Builder should have valid defaults for all configuration values
     Gen2CfgBuilder::default().build()?;
 
     // Alternative syntax: get default builder from Gen2Cfg itself
     Gen2Cfg::builder().build()?;
+
+    Ok(())
+}
+
+#[test]
+fn hex_id_test() -> TestResult {
+    let id: Vec<u8> = vec![226, 0, 66, 22, 97, 128, 96, 21, 0, 149, 24, 56];
+
+    let xpc = HexID::from_id(id);
+
+    assert_eq!(xpc.to_string(), "E2:00:42:16:61:80:60:15:00:95:18:38");
 
     Ok(())
 }
@@ -98,31 +108,11 @@ fn gen2_inventory_ffi() -> TestResult {
 
     // tune reader
     reader.tune_freqs(TuningAlgorithm::None)?;
+    
+    // run inventory
+    let tags = reader.inventory()?;
 
-    // create tag data storage location
-    let mut tag_data: [ffi::STUHFL_T_InventoryTag; ffi::STUHFL_D_MAX_TAG_LIST_SIZE as usize] = unsafe{std::mem::zeroed()};
-
-    // create tag data storage container
-    let mut inv_data = ffi::STUHFL_T_InventoryData{
-        tagList: &mut tag_data as _,
-        tagListSizeMax: tag_data.len() as u16,
-        ..Default::default()
-    };
-
-    // customize inventory options
-    let mut inv_option = ffi::STUHFL_T_InventoryOption{
-        roundCnt: 2000,
-        ..Default::default()
-    };
-    inv_option.options |= ffi::STUHFL_D_INVENTORYREPORT_OPTION_HEARTBEAT as u8;
-
-    unsafe{proc_err(ffi::Gen2_Inventory(&mut inv_option, &mut inv_data))?}
-
-    println!("Inventory Info:\n{:#?}", inv_data);
-
-    let tag_cnt = inv_data.statistics.tagCnt as usize;
-
-    println!("Tag Info:\n{:#?}", &tag_data[0..tag_cnt]);
+    println!("Found tags:\n{:#?}", tags);
 
     Ok(())
 }

@@ -132,8 +132,14 @@ impl ST25RU3993 {
         Ok(ver.sw_ver >= LOWEST_SW_VER && ver.hw_ver >= LOWEST_HW_VER)
     }
 
-    /// Tune the reader using the specified tuning algorithm
+    /// Tune the reader using the specified tuning algorithm. Note: must be called
+    /// AFTER configuring a protocol (requires knoweldge of active antenna).
     pub fn tune_freqs(&mut self, algo: TuningAlgorithm) -> Result<(), Error> {
+        if self.protocol.is_none() {
+            eprintln!("Error: Must configure a protocol before tuning");
+            return Err(Error::None)
+        }
+
         // None does nothing
         if algo == TuningAlgorithm::None {
             return Ok(())
@@ -157,8 +163,11 @@ impl ST25RU3993 {
         Ok(())
     }
 
-    /// Configures the reader for using the Gen2 protocol
+    /// Configures the reader for use of the Gen2 protocol
     pub fn configure_gen2(&mut self, gen2_cfg: &Gen2Cfg) -> Result<(), Error> {
+        // Reset protocol, in case of invalid state
+        self.protocol = None;
+
         // Set up antenna configuration
         let mut tx_rx_cfg = gen2_cfg.tx_rx_cfg.as_ffi();
         unsafe {proc_err(ffi::Set_TxRxCfg(&mut tx_rx_cfg))?}
@@ -193,6 +202,40 @@ impl ST25RU3993 {
         // Enable Gen2 protocol commands for reader
         self.protocol = Some(Protocol::Gen2);
         Ok(())
+    }
+
+    /// Inventories tags for the selected protocol. Note: be sure to configure a protocol & tune the reader first!
+    pub fn inventory(&mut self) -> Result<Vec<InventoryTag>, Error> {
+        if self.protocol.is_none() { return Err(Error::None) };
+
+        // create tag data storage location
+        let mut tag_data: [ffi::STUHFL_T_InventoryTag; ffi::STUHFL_D_MAX_TAG_LIST_SIZE as usize] = unsafe{std::mem::zeroed()};
+
+        // create tag data storage container
+        let mut inv_data = ffi::STUHFL_T_InventoryData{
+            tagList: &mut tag_data as _,
+            tagListSizeMax: tag_data.len() as u16,
+            ..Default::default()
+        };
+
+        // customize inventory options
+        let mut inv_option = ffi::STUHFL_T_InventoryOption {
+            options: ffi::STUHFL_D_INVENTORYREPORT_OPTION_NONE as u8,
+            ..Default::default()
+        };
+
+        //inv_option.options |= ffi::STUHFL_D_INVENTORYREPORT_OPTION_HEARTBEAT as u8;
+
+        // run the inventory
+        unsafe{proc_err(ffi::Gen2_Inventory(&mut inv_option, &mut inv_data))?}
+
+        // transform data into vector of InventoryTag
+        let tags = tag_data[0..inv_data.statistics.tagCnt as usize]
+            .iter()
+            .map(|tag| InventoryTag::from(*tag))
+            .collect();
+
+        Ok(tags)
     }
 }
 

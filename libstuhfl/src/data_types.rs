@@ -20,7 +20,7 @@ where T: Default {
 }
 
 enum_from_primitive! {
-    #[derive(Copy, Clone, PartialEq)]
+    #[derive(Copy, Clone, PartialEq, Debug)]
     #[repr(u8)]
     pub enum Antenna {
         Antenna1 = ffi::STUHFL_D_ANTENNA_1 as u8,
@@ -739,3 +739,102 @@ pub struct Gen2Cfg {
 }
 
 impl Builder<Gen2CfgBuilder> for Gen2Cfg {}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct HexID {
+    id: Vec<u8>
+}
+
+impl HexID {
+    pub fn from_id(id: Vec<u8>) -> HexID {
+        HexID{id}
+    }
+
+    pub fn get_id(&self) -> &[u8] {
+        &self.id[..]
+    }
+}
+
+impl fmt::Display for HexID {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let id = self.id.iter().fold(String::new(), |a, b| a + &format!("{:02X}", b) + ":");
+        write!(f, "{}", &id[..id.len() - 1])
+    }
+}
+
+type Xpc = HexID;
+
+impl From<ffi::STUHFL_T_InventoryTagXPC> for Xpc {
+    fn from(xpc: ffi::STUHFL_T_InventoryTagXPC) -> Xpc {
+        Xpc { id: Vec::from(&xpc.data[0..xpc.length as usize]) }
+    }
+}
+
+type Epc = HexID;
+
+impl From<ffi::STUHFL_T_InventoryTagEPC> for Epc {
+    fn from(epc: ffi::STUHFL_T_InventoryTagEPC) -> Epc {
+        Epc { id: Vec::from(&epc.data[0..epc.length as usize]) }
+    }
+}
+
+type Tid = HexID;
+
+impl From<ffi::STUHFL_T_InventoryTagTID> for Tid {
+    fn from(tid: ffi::STUHFL_T_InventoryTagTID) -> Tid {
+        Tid { id: Vec::from(&tid.data[0..tid.length as usize]) }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct InventoryTag {
+    /// Tag detection slot ID
+    slot_id: u32,
+    /// Tag detection time stamp in ms after starting inventory
+    timestamp: u32,
+    /// Antenna at which tag was detected
+    antenna: Antenna,
+    /// AGC (Automatic Gain Control) measured when tag found
+    agc: u8,
+    /// I part of tag logarithmic RSSI
+    rssi_log_i: u8,
+    /// Q part of tag logarithmic RSSI
+    rssi_log_q: u8,
+    /// I part of tag linear RSSI
+    rssi_lin_i: i8,
+    /// Q part of tag linear RSSI
+    rssi_lin_q: i8,
+    /// Tag PC
+    pc: [u8; 2],
+    /// Tag XPC
+    xpc: Xpc,
+    /// Tag EPC
+    epc: Epc,
+    /// Tag TID
+    tid: Tid,
+}
+
+impl From<ffi::STUHFL_T_InventoryTag> for InventoryTag {
+    fn from(tag: ffi::STUHFL_T_InventoryTag) -> InventoryTag {
+        InventoryTag {
+            slot_id: tag.slotId,
+            timestamp: tag.timestamp,
+            antenna: Antenna::from_u8(tag.antenna).unwrap(),
+            agc: tag.agc,
+            rssi_log_i: tag.rssiLogI,
+            rssi_log_q: tag.rssiLogQ,
+            rssi_lin_i: tag.rssiLinI,
+            rssi_lin_q: tag.rssiLinQ,
+            pc: tag.pc,
+            xpc: Xpc::from(tag.xpc),
+            epc: Epc::from(tag.epc),
+            tid: Tid::from(tag.tid),
+        }
+    }
+}
+
+/*impl fmt::Display for InventoryTag {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Slot id: {}\nTimestamp: {}\nAntenna: {}\n, AGC: {}\nRSSI logI: {}")
+    }
+}*/
