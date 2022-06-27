@@ -204,7 +204,8 @@ impl ST25RU3993 {
         Ok(())
     }
 
-    /// Inventories tags for the selected protocol. Note: be sure to configure a protocol & tune the reader first!
+    /// Inventories tags for the selected protocol (1 Round). 
+    /// Note: be sure to configure a protocol & tune the reader first!
     pub fn inventory(&mut self) -> Result<(InventoryStatistics, Vec<InventoryTag>), Error> {
         if self.protocol.is_none() { return Err(Error::None) };
 
@@ -236,6 +237,67 @@ impl ST25RU3993 {
         let statistics = InventoryStatistics::from(inv_data.statistics);
 
         Ok((statistics, tags))
+    }
+
+    /// Inventories tags for the selected protocol (N-Rounds, blocking call).
+    /// Note: be sure to configure a protocol & tune the reader first!
+    pub fn inventory_runner(&mut self, num_rounds: u32, ) -> Result<(InventoryStatistics, Vec<InventoryTag>), Error> {
+        if self.protocol.is_none() { return Err(Error::None) };
+
+        if num_rounds == 0 {
+            eprintln!("Error: num_rounds = 0 not yet implemented!");
+            return Err(Error::None)
+        }
+
+        // create tag data storage location
+        let mut tag_data: [ffi::STUHFL_T_InventoryTag; ffi::STUHFL_D_MAX_TAG_LIST_SIZE as usize] = unsafe{std::mem::zeroed()};
+
+        // create tag data storage container
+        let mut inv_data = ffi::STUHFL_T_InventoryData{
+            tagList: &mut tag_data as _,
+            tagListSizeMax: tag_data.len() as u16,
+            ..Default::default()
+        };
+
+        // customize inventory options
+        let mut inv_option = ffi::STUHFL_T_InventoryOption {
+            options: ffi::STUHFL_D_INVENTORYREPORT_OPTION_NONE as u8,
+            roundCnt: num_rounds,
+            ..Default::default()
+        };
+
+        unsafe {
+            TAG_STREAM.clear();
+        }
+
+        // Call inventory (blocking)
+        unsafe{proc_err(ffi::Inventory_RunnerStart(&mut inv_option, Some(callback), None, &mut inv_data))?}
+
+        let statistics = InventoryStatistics::from(inv_data.statistics);
+
+        Ok((statistics, unsafe{TAG_STREAM.clone()}))
+    }
+}
+
+static mut TAG_STREAM: Vec<InventoryTag> = Vec::new();
+
+unsafe extern "C" fn callback(data: *mut ffi::STUHFL_T_InventoryData) -> ffi::STUHFL_T_RET_CODE {
+    if std::panic::catch_unwind(|| {
+        let tag_list = &[(*data).tagList];
+
+        let new_tags = tag_list[0..(*data).tagListSize as usize]
+            .iter()
+            .map(|tag| InventoryTag::from(**tag));
+
+        TAG_STREAM.extend(new_tags);
+
+        (*data).tagListSize = 0;
+    }).is_err() {
+        // callback unwrapped
+        Error::Generic as ffi::STUHFL_T_RET_CODE
+    } else {
+        // callback finished
+        Error::None as ffi::STUHFL_T_RET_CODE
     }
 }
 
