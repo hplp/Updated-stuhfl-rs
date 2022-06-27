@@ -136,7 +136,6 @@ fn gen2_inventory() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 #[serial]
 #[cfg(feature = "reader_tests")]

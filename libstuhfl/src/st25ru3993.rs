@@ -241,7 +241,7 @@ impl ST25RU3993 {
 
     /// Inventories tags for the selected protocol (N-Rounds, blocking call).
     /// Note: be sure to configure a protocol & tune the reader first!
-    pub fn inventory_runner(&mut self, num_rounds: u32, ) -> Result<(InventoryStatistics, Vec<InventoryTag>), Error> {
+    pub fn inventory_runner(&mut self, num_rounds: u32) -> Result<(InventoryStatistics, Vec<InventoryTag>), Error> {
         if self.protocol.is_none() { return Err(Error::None) };
 
         if num_rounds == 0 {
@@ -266,32 +266,36 @@ impl ST25RU3993 {
             ..Default::default()
         };
 
-        unsafe {
-            TAG_STREAM.clear();
-        }
-
         // Call inventory (blocking)
-        unsafe{proc_err(ffi::Inventory_RunnerStart(&mut inv_option, Some(callback), None, &mut inv_data))?}
+        unsafe{proc_err(ffi::Inventory_RunnerStart(&mut inv_option, Some(cycle_cb), Some(finish_cb), &mut inv_data))?}
+
+        // save data into iterator
+        let tags = tag_data[0..inv_data.statistics.tagCnt as usize]
+            .iter()
+            .map(|tag| InventoryTag::from(*tag))
+            .collect();
 
         let statistics = InventoryStatistics::from(inv_data.statistics);
 
-        Ok((statistics, unsafe{TAG_STREAM.clone()}))
+        Ok((statistics, tags))
     }
 }
 
-static mut TAG_STREAM: Vec<InventoryTag> = Vec::new();
-
-unsafe extern "C" fn callback(data: *mut ffi::STUHFL_T_InventoryData) -> ffi::STUHFL_T_RET_CODE {
+unsafe extern "C" fn cycle_cb(data: *mut ffi::STUHFL_T_InventoryData) -> ffi::STUHFL_T_RET_CODE {
     if std::panic::catch_unwind(|| {
-        let tag_list = &[(*data).tagList];
+        // TODO - something in callback...
+    }).is_err() {
+        // callback unwrapped
+        Error::Generic as ffi::STUHFL_T_RET_CODE
+    } else {
+        // callback finished
+        Error::None as ffi::STUHFL_T_RET_CODE
+    }
+}
 
-        let new_tags = tag_list[0..(*data).tagListSize as usize]
-            .iter()
-            .map(|tag| InventoryTag::from(**tag));
-
-        TAG_STREAM.extend(new_tags);
-
-        (*data).tagListSize = 0;
+unsafe extern "C" fn finish_cb(data: *mut ffi::STUHFL_T_InventoryData) -> ffi::STUHFL_T_RET_CODE {
+    if std::panic::catch_unwind(|| {
+        // TODO - something in callback...
     }).is_err() {
         // callback unwrapped
         Error::Generic as ffi::STUHFL_T_RET_CODE
