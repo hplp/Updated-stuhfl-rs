@@ -771,8 +771,9 @@ impl HexID {
 
 impl fmt::Display for HexID {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let id = self.id.iter().fold(String::new(), |a, b| a + &format!("{:02X}", b) + ":");
-        write!(f, "{}", &id[..id.len()])
+        let mut id = self.id.iter().fold(String::new(), |a, b| a + &format!("{:02X}", b) + ":");
+        id.pop();
+        write!(f, "{}", &id)
     }
 }
 
