@@ -60,9 +60,9 @@ extern "C"
 
 // --------------------------------------------------------------------------
 #ifdef WIN64
-typedef uintptr_t                               STUHFL_T_POINTER2UINT;
+typedef uint64_t                               STUHFL_T_POINTER2UINT;
 #else
-typedef uintptr_t                               STUHFL_T_POINTER2UINT;
+typedef uint32_t                               STUHFL_T_POINTER2UINT;
 #endif
 
 typedef uint32_t                                STUHFL_T_RET_CODE;

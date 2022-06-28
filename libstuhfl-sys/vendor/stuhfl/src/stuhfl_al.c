@@ -124,10 +124,12 @@ STUHFL_DLL_API STUHFL_T_RET_CODE CALL_CONV STUHFL_F_StartOOP(STUHFL_T_Action act
                           0
                       );
 #elif defined(POSIX)
-    if (!pthread_create(&inventoryThread, NULL, threadInventoryFunc, (void*)action)) {
+    pthread_t threadID;
+    if (pthread_create(&threadID, NULL, threadInventoryFunc, (void*)action)) {
         inventoryThread = INVALID_HANDLE_VALUE;
     } else {
-        printf("ERROR - pthread_create error\n");
+        fprintf(stderr, "[DEBUG] Created thread %d\n", threadID);
+        inventoryThread = threadID;
     }
 #else
 #endif
