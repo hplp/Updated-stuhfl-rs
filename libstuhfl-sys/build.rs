@@ -55,7 +55,7 @@ fn main() {
         // all public functions should be included in the wrapper header
         .header("wrapper.h")
         // clang arguments (mostly include's or define's)
-        .clang_args(["-Ivendor/stuhfl/include", "-Ivendor/stuhfl/include/platform"].iter())
+        .clang_args(["-Ivendor/stuhfl/include", "-Ivendor/stuhfl/include/platform", &("-D".to_owned() + def_os)].iter())
         // functions to be exported into the bindings
         // their associated types will be implicitely included
         .allowlist_function("Connect")
