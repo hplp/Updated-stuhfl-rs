@@ -280,7 +280,37 @@ impl ST25RU3993 {
         Ok((statistics, tags))
     }
 
-    /// Reads data from a selected tag
+    /// Selects a tag using its EPC number
+    pub fn select_gen2(&mut self, epc: Epc) -> Result<(), Error> {
+
+        let mut mask = [0; 32];
+
+        for (i, x) in epc.id[..std::cmp::min(32, epc.id.len())].iter().enumerate() {
+            mask[i] = *x;
+        }
+
+        let mut sel = ffi::STUHFL_T_Gen2_Select {
+            mode: ffi::STUHFL_D_GEN2_SELECT_MODE_CLEAR_AND_ADD as u8,
+            target: ffi::STUHFL_D_GEN2_TARGET_SL as u8,
+            action: 0,
+            memoryBank: ffi::STUHFL_D_GEN2_MEMORY_BANK_EPC as u8,
+            maskBitPointer: 0x20,
+            maskBitLength: if epc.id.len() >= ffi::STUHFL_D_GEN2_MAX_SELECT_MASK_LENGTH as usize {
+                0xFF
+            } else {
+                epc.id.len() as u8 * 8
+            },
+            mask,
+            truncation: 0,
+        };
+
+        unsafe{proc_err(ffi::Gen2_Select(&mut sel))?}
+
+        Ok(())
+    }
+
+    /// Reads data from a selected tag.
+    /// Make sure to call select_gen2 first!
     pub fn read_gen2(&mut self, memory_bank: Gen2MemoryBank, word_ptr: u32, num_bytes: u8, password: Option<[u8; 4]>) -> Result<Vec<u8>, Error> {
         // Make sure protocol is set up first
         if self.protocol.is_none() { return Err(Error::None) };

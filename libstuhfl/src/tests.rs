@@ -155,9 +155,27 @@ fn gen2_read() -> TestResult {
     reader.tune_freqs(TuningAlgorithm::Exact)?;
 
     // run the inventory (TODO - use the tags found to select with)
-    let (statistics, tags) = reader.inventory()?;
+    let (_, tags) = reader.inventory()?;
 
+    // must find tags to continue with test
+    if (tags.is_empty()) {
+        return Err("Empty tag list!");
+    }
+
+    // print found tags
+    println!("Found tags:");
+    for tag in tags {
+        println!("{}", tag.epc);
+    }
+
+    // select the first found tag
+    reader.select_gen2(tags[0].epc)?;
+
+    // read from the tag
     let data = reader.read_gen2(Gen2MemoryBank::User, 0xEC, 3, None)?;
 
+    // print read bytes
     println!("Read bytes {}: {:?}", data.len(), data);
+
+    Ok(())
 }

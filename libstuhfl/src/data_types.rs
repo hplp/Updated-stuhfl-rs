@@ -769,7 +769,7 @@ impl Builder<Gen2CfgBuilder> for Gen2Cfg {}
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct HexID {
-    id: Vec<u8>
+    pub(crate) id: Vec<u8>
 }
 
 impl HexID {
