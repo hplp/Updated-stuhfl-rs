@@ -229,7 +229,7 @@ impl ST25RU3993 {
         unsafe{proc_err(ffi::Gen2_Inventory(&mut inv_option, &mut inv_data))?}
 
         // save data into iterator
-        let tags = tag_data[0..inv_data.statistics.tagCnt as usize]
+        let tags = tag_data[..inv_data.statistics.tagCnt as usize]
             .iter()
             .map(|tag| InventoryTag::from(*tag))
             .collect();
@@ -270,7 +270,7 @@ impl ST25RU3993 {
         unsafe{proc_err(ffi::Inventory_RunnerStart(&mut inv_option, Some(cycle_cb), Some(finish_cb), &mut inv_data))?}
 
         // save data into iterator
-        let tags = tag_data[0..inv_data.statistics.tagCnt as usize]
+        let tags = tag_data[..inv_data.statistics.tagCnt as usize]
             .iter()
             .map(|tag| InventoryTag::from(*tag))
             .collect();
