@@ -158,8 +158,8 @@ fn gen2_read() -> TestResult {
     let (_, tags) = reader.inventory()?;
 
     // must find tags to continue with test
-    if (tags.is_empty()) {
-        return Err("Empty tag list!");
+    if tags.is_empty() {
+        return Err(Box::new("Empty tag list!".to_owned()));
     }
 
     // print found tags
