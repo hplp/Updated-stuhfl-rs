@@ -279,6 +279,34 @@ impl ST25RU3993 {
 
         Ok((statistics, tags))
     }
+
+    /// Reads data from a selected tag
+    pub fn read_gen2(&mut self, memory_bank: Gen2MemoryBank, word_ptr: u32, num_bytes: u8, password: Option<[u8; 4]>) -> Result<Vec<u8>, Error> {
+        // Make sure protocol is set up first
+        if self.protocol.is_none() { return Err(Error::None) };
+
+        let mut read_struct = ffi::STUHFL_T_Read {
+            wordPtr: word_ptr,
+            memoryBank: memory_bank as u8,
+            numBytesToRead: num_bytes,
+            pwd: if let Some(pwd) = password {
+                pwd
+            } else {
+                [0; 4]
+            },
+            numReadBytes: 0,
+            data: [0; 64]
+        };
+
+        // Call read
+        unsafe{proc_err(ffi::Gen2_Read(&mut read_struct))?}
+
+        // Create vector from read bytes
+        let result = Vec::from(&read_struct.data[..read_struct.numReadBytes as usize]);
+
+        // Return result
+        Ok(result)
+    }
 }
 
 static mut CB_TAGS: Vec<InventoryTag> = Vec::new();

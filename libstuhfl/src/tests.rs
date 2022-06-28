@@ -135,3 +135,29 @@ fn gen2_inventory_continuous() -> TestResult {
 
     Ok(())
 }
+
+#[test]
+#[serial]
+#[cfg(feature = "reader_tests")]
+fn gen2_read() -> TestResult {
+
+    // connect to reader
+    let mut reader = ST25RU3993::new()?;
+
+    // set gen2 configuration
+    let gen2_cfg = Gen2Cfg::builder()
+        .build()?;
+
+    // apply the settings
+    reader.configure_gen2(&gen2_cfg)?;
+
+    // tune the reader
+    reader.tune_freqs(TuningAlgorithm::Exact)?;
+
+    // run the inventory (TODO - use the tags found to select with)
+    let (statistics, tags) = reader.inventory()?;
+
+    let data = reader.read_gen2(Gen2MemoryBank::User, 0xEC, 3, None)?;
+
+    println!("Read bytes {}: {:?}", data.len(), data);
+}

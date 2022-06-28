@@ -179,6 +179,19 @@ enum_from_primitive! {
     }
 }
 
+enum_from_primitive! {
+    #[derive(Copy, Clone, PartialEq)]
+    #[repr(u8)]
+    /// Gen2 Memory banks
+    pub enum Gen2MemoryBank {
+        /// EPC Memory
+        Epc = ffi::STUHFL_D_GEN2_MEMORY_BANK_EPC as u8,
+        Reserved = ffi::STUHFL_D_GEN2_MEMORY_BANK_RESERVED as u8,
+        Tid = ffi::STUHFL_D_GEN2_MEMORY_BANK_TID as u8,
+        User = ffi::STUHFL_D_GEN2_MEMORY_BANK_USER as u8,
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, PartialOrd)]
 pub struct VersionNum {
     pub major: u8,
