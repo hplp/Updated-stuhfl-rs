@@ -82,39 +82,8 @@ fn gen2_inventory() -> TestResult {
     // connect to reader
     let mut reader = ST25RU3993::new()?;
 
-    // set antenna settings
-    let tx_rx_cfg = TxRxCfg::builder()
-        .rx_sensitivity_level(19)
-        .tx_output_level(0)
-        .build()?;
-
-    // set adaptive q settings
-    let adaptive_q_cfg = Gen2AdaptiveQCfg::builder()
-        .start_q(4)
-        .build()?;
-    
-    // set query parameters
-    let query_params = Gen2QueryParams::builder()
-        .target_depletion_mode(true)
-        .build()?;
-
-    // set inventory configuration
-    let inventory_cfg = Gen2InventoryCfg::builder()
-        .adaptive_q(Gen2AdaptiveQ::Enable(adaptive_q_cfg))
-        .query_params(query_params)
-        .build()?;
-
-    // set protocol configuration
-    let proto_cfg = Gen2ProtocolCfg::builder()
-        .blf(Gen2Blf::TwoHundredFiftySix)
-        .coding(Gen2Coding::Miller8)
-        .build()?;
-
     // set gen2 configuration
     let gen2_cfg = Gen2Cfg::builder()
-        .inv_cfg(inventory_cfg)
-        .tx_rx_cfg(tx_rx_cfg)
-        .proto_cfg(proto_cfg)
         .build()?;
     
     // apply the settings
@@ -144,39 +113,8 @@ fn gen2_inventory_continuous() -> TestResult {
     // connect to reader
     let mut reader = ST25RU3993::new()?;
 
-    // set antenna settings
-    let tx_rx_cfg = TxRxCfg::builder()
-        .rx_sensitivity_level(19)
-        .tx_output_level(0)
-        .build()?;
-
-    // set adaptive q settings
-    let adaptive_q_cfg = Gen2AdaptiveQCfg::builder()
-        .start_q(4)
-        .build()?;
-    
-    // set query parameters
-    let query_params = Gen2QueryParams::builder()
-        .target_depletion_mode(true)
-        .build()?;
-
-    // set inventory configuration
-    let inventory_cfg = Gen2InventoryCfg::builder()
-        .adaptive_q(Gen2AdaptiveQ::Enable(adaptive_q_cfg))
-        .query_params(query_params)
-        .build()?;
-
-    // set protocol configuration
-    let proto_cfg = Gen2ProtocolCfg::builder()
-        .blf(Gen2Blf::TwoHundredFiftySix)
-        .coding(Gen2Coding::Miller8)
-        .build()?;
-
     // set gen2 configuration
     let gen2_cfg = Gen2Cfg::builder()
-        .inv_cfg(inventory_cfg)
-        .tx_rx_cfg(tx_rx_cfg)
-        .proto_cfg(proto_cfg)
         .build()?;
     
     // apply the settings
@@ -186,7 +124,7 @@ fn gen2_inventory_continuous() -> TestResult {
     reader.tune_freqs(TuningAlgorithm::Exact)?;
     
     // run inventory
-    let (statitistics, tags) = reader.inventory_runner(2000)?;
+    let (statitistics, tags) = reader.inventory_runner(20)?;
 
     println!("Inventory Statistics:\n{:#?}", statitistics);
     println!("Found tags:");

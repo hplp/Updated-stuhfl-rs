@@ -270,7 +270,7 @@ impl ST25RU3993 {
         unsafe{CB_TAGS.clear()}
 
         // Call inventory (blocking)
-        unsafe{proc_err(ffi::Inventory_RunnerStart(&mut inv_option, Some(cycle_cb), Some(finish_cb), &mut inv_data))?}
+        unsafe{proc_err(ffi::Inventory_RunnerStart(&mut inv_option, Some(cycle_cb), None, &mut inv_data))?}
 
         // save data into iterator
         let tags = unsafe{CB_TAGS.clone()};
@@ -285,22 +285,12 @@ static mut CB_TAGS: Vec<InventoryTag> = Vec::new();
 
 unsafe extern "C" fn cycle_cb(data: *mut ffi::STUHFL_T_InventoryData) -> ffi::STUHFL_T_RET_CODE {
     if std::panic::catch_unwind(|| {
+        // Copy every scanned tag into the vector
         for i in 0..(*data).tagListSize {
             let tag =  (*data).tagList.offset(i as isize);
+            // Also convert the tag into the user-friendly version of the struct
             CB_TAGS.push(InventoryTag::from(*tag));
         }
-    }).is_err() {
-        // callback unwrapped
-        Error::Generic as ffi::STUHFL_T_RET_CODE
-    } else {
-        // callback finished
-        Error::None as ffi::STUHFL_T_RET_CODE
-    }
-}
-
-unsafe extern "C" fn finish_cb(_data: *mut ffi::STUHFL_T_InventoryData) -> ffi::STUHFL_T_RET_CODE {
-    if std::panic::catch_unwind(|| {
-        // TODO - something in callback...
     }).is_err() {
         // callback unwrapped
         Error::Generic as ffi::STUHFL_T_RET_CODE
