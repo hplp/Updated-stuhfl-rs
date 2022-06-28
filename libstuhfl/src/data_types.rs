@@ -772,7 +772,7 @@ impl HexID {
 impl fmt::Display for HexID {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let id = self.id.iter().fold(String::new(), |a, b| a + &format!("{:02X}", b) + ":");
-        write!(f, "{}", &id[..id.len() - 1])
+        write!(f, "{}", &id[..id.len()])
     }
 }
 
@@ -780,7 +780,7 @@ pub type Xpc = HexID;
 
 impl From<ffi::STUHFL_T_InventoryTagXPC> for Xpc {
     fn from(xpc: ffi::STUHFL_T_InventoryTagXPC) -> Xpc {
-        Xpc { id: Vec::from(&xpc.data[0..xpc.length as usize]) }
+        Xpc { id: Vec::from(&xpc.data[..xpc.length as usize]) }
     }
 }
 
@@ -788,7 +788,7 @@ pub type Epc = HexID;
 
 impl From<ffi::STUHFL_T_InventoryTagEPC> for Epc {
     fn from(epc: ffi::STUHFL_T_InventoryTagEPC) -> Epc {
-        Epc { id: Vec::from(&epc.data[0..epc.length as usize]) }
+        Epc { id: Vec::from(&epc.data[..epc.length as usize]) }
     }
 }
 
@@ -796,7 +796,7 @@ pub type Tid = HexID;
 
 impl From<ffi::STUHFL_T_InventoryTagTID> for Tid {
     fn from(tid: ffi::STUHFL_T_InventoryTagTID) -> Tid {
-        Tid { id: Vec::from(&tid.data[0..tid.length as usize]) }
+        Tid { id: Vec::from(&tid.data[..tid.length as usize]) }
     }
 }
 
