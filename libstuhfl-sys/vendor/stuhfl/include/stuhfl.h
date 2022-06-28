@@ -59,10 +59,12 @@ extern "C"
 //#define OLD_FREQUENCY_TUNING
 
 // --------------------------------------------------------------------------
-#ifdef WIN64
+#if defined(WIN64)
 typedef uint64_t                               STUHFL_T_POINTER2UINT;
-#else
+#elif defined(WIN32)
 typedef uint32_t                               STUHFL_T_POINTER2UINT;
+#elif defined(POSIX)
+typedef pthread_t                              STUHFL_T_POINTER2UINT;
 #endif
 
 typedef uint32_t                                STUHFL_T_RET_CODE;

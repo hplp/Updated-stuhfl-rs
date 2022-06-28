@@ -128,7 +128,6 @@ STUHFL_DLL_API STUHFL_T_RET_CODE CALL_CONV STUHFL_F_StartOOP(STUHFL_T_Action act
     if (pthread_create(&threadID, NULL, threadInventoryFunc, (void*)action)) {
         inventoryThread = INVALID_HANDLE_VALUE;
     } else {
-        fprintf(stderr, "[DEBUG] Created thread %d\n", threadID);
         inventoryThread = threadID;
     }
 #else

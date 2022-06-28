@@ -1470,10 +1470,7 @@ STUHFL_DLL_API STUHFL_T_RET_CODE CALL_CONV Inventory_RunnerStart(STUHFL_T_Invent
 #if defined(WIN32) || defined(WIN64)
         WaitForSingleObject((HANDLE)invRunnerId, INFINITE);
 #elif defined(POSIX)
-        fprintf(stderr, "[DEBUG] Joining thread %d\n", invRunnerId);
         pthread_join((pthread_t)invRunnerId, NULL);
-        fprintf(stderr, "[DEBUG] Successfully joined thread.\n");
-        fflush(stderr);
 #endif
     }
     return retCode;
