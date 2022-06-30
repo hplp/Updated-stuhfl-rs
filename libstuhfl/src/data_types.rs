@@ -13,7 +13,8 @@ pub(crate) trait AsFFI<T> {
 ///     .expect("Failed to build configuration");
 /// ```
 pub trait Builder<T>
-where T: Default {
+where T: std::default::Default {
+    /// Default implementation, see [`Builder<T>`]
     fn builder() -> T {
         T::default()
     }
@@ -22,11 +23,18 @@ where T: Default {
 enum_from_primitive! {
     #[derive(Copy, Clone, PartialEq, Debug)]
     #[repr(u8)]
+    /// Represents a physical antenna on an RFID reader.
+    /// See ST25RU3993 manual for details.
     pub enum Antenna {
+        /// Antenna 1 (default).
         Antenna1 = ffi::STUHFL_D_ANTENNA_1 as u8,
+        /// Antenna 2.
         Antenna2 = ffi::STUHFL_D_ANTENNA_2 as u8,
+        /// Antenna 3.
         Antenna3 = ffi::STUHFL_D_ANTENNA_3 as u8,
+        /// Antenna 4.
         Antenna4 = ffi::STUHFL_D_ANTENNA_4 as u8,
+        /// Alternative antenna.
         AntennaAlt = ffi::STUHFL_D_ANTENNA_ALT as u8
     }
 }
@@ -34,11 +42,18 @@ enum_from_primitive! {
 enum_from_primitive! {
     #[derive(Copy, Clone, PartialEq)]
     #[repr(u8)]
+    /// Profiles defined in firmware for channel configurations. 
+    /// See [`ChannelListCfg`] for details.
     pub enum Profile {
+        /// European profile
         Europe = ffi::STUHFL_D_PROFILE_EUROPE as u8,
+        /// United states profile
         Usa = ffi::STUHFL_D_PROFILE_USA as u8,
+        /// Japanese profile
         Japan = ffi::STUHFL_D_PROFILE_JAPAN as u8,
+        /// Chinese profile
         China = ffi::STUHFL_D_PROFILE_CHINA as u8,
+        /// Chinese profile (alternative)
         China2 = ffi::STUHFL_D_PROFILE_CHINA2 as u8,
     }
 }
@@ -46,10 +61,49 @@ enum_from_primitive! {
 enum_from_primitive! {
     #[derive(Copy, Clone, PartialEq)]
     #[repr(u8)]
+    /// Different types of tuning algorithms. The faster
+    /// algorithms are generally less accurate.
     pub enum TuningAlgorithm {
+        /// # No tuning algorithm.
+        /// 
+        /// This algorithm simply leaves the reader untuned (not recommended). Use [`TuningAlgorithm::Fast`]
+        /// if you really need to avoid the performance penalty from tuning.
         None = ffi::STUHFL_D_TUNING_ALGO_NONE as u8,
+        /// # Simple automatic tuning function. 
+        /// 
+        /// This algorithm tries to find an optimized tuner setting (minimal reflected power).
+        /// The function starts at the current tuner setting and modifies the tuner caps
+        /// until a setting with a minimum of reflected power is found.When changing the tuner
+        /// further leads to an increase of reflected power the algorithm stops.
+        /// 
+        /// Note that, although the algorithm has been optimized to not immediately stop
+        /// at local minima of reflected power, it still might not find the tuner setting with
+        /// the lowest reflected power. The algorithm of [`TuningAlgorithm::Exact`] is probably
+        /// producing better results, but it is slower.
         Fast = ffi::STUHFL_D_TUNING_ALGO_FAST as u8,
+        /// # Sophisticated automatic tuning function.
+        /// 
+        /// This algorithm tries to find an optimized tuner setting (minimal reflected power).
+        /// The function splits the 3-dimensional tuner-setting-space (axis are Cin, Clen and Cout)
+        /// into segments and searches in each segment (by using [`TuningAlgorithm::Fast`])
+        /// for its local minimum of reflected power.
+        /// 
+        /// The tuner setting (point in tuner-setting-space) which has the lowest reflected
+        /// power is returned in parameter res. This algorithm has a much higher probability
+        /// to find the tuner setting with the lowest reflected power than [`TuningAlgorithm::Fast`]
+        /// but on the other hand takes much longer.
         Exact = ffi::STUHFL_D_TUNING_ALGO_EXACT as u8,
+        /// # Enhanced Sophisticated automatic tuning function. 
+        /// 
+        /// This algorithm tries to find an optimized tuner setting (minimal reflected power).
+        /// The function splits the 3-dimensional tuner-setting-space (axis are Cin, Clen and Cout)
+        /// into segments and get reflected power for each of them. A [`TuningAlgorithm::Fast`] 
+        /// is then run on the 3 segments with minimum of reflected power.
+        /// 
+        /// The tuner setting (point in tuner-setting-space)
+        /// which has the lowest reflected power is then returned in parameter res.
+        /// This algorithm has a much higher probability to find the tuner setting with the
+        /// lowest reflected power than [`TuningAlgorithm::Fast`] and is faster than [`TuningAlgorithm::Exact`].
         GroupedExact = ffi::STUHFL_D_TUNING_ALGO_GROUPED_EXACT as u8,
     }
 }
@@ -58,7 +112,8 @@ enum_from_primitive! {
     #[derive(Copy, Clone, PartialEq)]
     #[repr(u8)]
     /// Query Selection.
-    // These values are from the GS1 Standard
+    /// 
+    /// These values are from the GS1 Standard
     pub enum QuerySel {
         /// All targets
         All = 0b00,
@@ -88,11 +143,13 @@ enum_from_primitive! {
 enum_from_primitive! {
     #[derive(Copy, Clone, PartialEq)]
     #[repr(u8)]
-    /// Query tags who's inventoried flag is A or B
-    // These values are from the GS1 Standard
+    /// Query tags who's inventoried flag is A or B.
+    /// 
+    /// These values are from the GS1 Standard.
     pub enum Gen2QueryTarget {
         /// Target A
         A = 0b0,
+        /// Target B
         B = 0b1,
     }
 }
@@ -103,11 +160,11 @@ enum_from_primitive! {
     /// TARI values are the length of time to represent a
     /// binary 0 using the Gen 2 standard (in microseconds)
     pub enum Gen2Tari {
-        /// 6.25 μs
+        /// 6.25 μs tari
         Six = ffi::STUHFL_D_GEN2_TARI_6_25 as u8,
-        /// 12.5 μs
+        /// 12.5 μs tari
         Twelve = ffi::STUHFL_D_GEN2_TARI_12_50 as u8,
-        /// 25 μs
+        /// 25 μs tari
         TwentyFive = ffi::STUHFL_D_GEN2_TARI_25_00 as u8,
     }
 }
@@ -117,17 +174,17 @@ enum_from_primitive! {
     #[repr(u8)]
     /// BLF is the Backscatter Link Frequency of the transmission (in kHz)
     pub enum Gen2Blf {
-        /// 40 kHz
+        /// 40 kHz BLF
         Forty = ffi::STUHFL_D_GEN2_BLF_40 as u8,
-        /// 160 kHz
+        /// 160 kHz BLF
         OneHundredSixty = ffi::STUHFL_D_GEN2_BLF_160 as u8,
-        /// 213 kHz
+        /// 213 kHz BLF
         TwoHundredThirteen = ffi::STUHFL_D_GEN2_BLF_213 as u8,
-        /// 256 kHz
+        /// 256 kHz BLF
         TwoHundredFiftySix = ffi::STUHFL_D_GEN2_BLF_256 as u8,
-        /// 320 kHz
+        /// 320 kHz BLF
         ThreeHundredTwenty = ffi::STUHFL_D_GEN2_BLF_320 as u8,
-        /// 640 kHz
+        /// 640 kHz BLF
         SixHundredForty = ffi::STUHFL_D_GEN2_BLF_640 as u8,
     }
 }
@@ -182,21 +239,30 @@ enum_from_primitive! {
 enum_from_primitive! {
     #[derive(Copy, Clone, PartialEq)]
     #[repr(u8)]
-    /// Gen2 Memory banks
+    /// Gen2 Memory banks. See [`st25ru3993::read_gen2()`] for details.
     pub enum Gen2MemoryBank {
-        /// EPC Memory
+        /// EPC Memory bank
         Epc = ffi::STUHFL_D_GEN2_MEMORY_BANK_EPC as u8,
+        /// Reserved Memory bank
         Reserved = ffi::STUHFL_D_GEN2_MEMORY_BANK_RESERVED as u8,
+        /// TID Memory bank
         Tid = ffi::STUHFL_D_GEN2_MEMORY_BANK_TID as u8,
+        /// User Memory bank
         User = ffi::STUHFL_D_GEN2_MEMORY_BANK_USER as u8,
     }
 }
 
 #[derive(Copy, Clone, PartialEq, PartialOrd)]
+/// Contains the version numbering for ST Hardware & Software.
+/// `major.minor.micro.nano`
 pub struct VersionNum {
+    /// Major version
     pub major: u8,
+    /// Minor version
     pub minor: u8,
+    /// Micro version
     pub micro: u8,
+    /// Nano version
     pub nano: u8
 }
 
@@ -218,7 +284,9 @@ impl From <ffi::STUHFL_T_Version> for VersionNum {
 }
 
 #[derive(Clone)]
+/// Contains a version descriptor string
 pub struct VersionInfo {
+    /// Information about version
     pub info: String
 }
 
@@ -229,10 +297,15 @@ impl fmt::Display for VersionInfo {
 }
 
 #[derive(Clone)]
+/// Contains version of firmware & software of ST chip
 pub struct Version {
+    /// Firmware version
     pub sw_ver: VersionNum,
+    /// Hardware version
     pub hw_ver: VersionNum,
+    /// Firmware description
     pub sw_info: VersionInfo,
+    /// Hardware description
     pub hw_info: VersionInfo
 }
 
@@ -244,6 +317,7 @@ impl fmt::Display for Version {
 
 #[derive(Builder, Copy, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
+/// Contains antenna configuration settings. See [`Self::builder()`] for details.
 pub struct TxRxCfg {
     /// Transmission output level (dB). See control register 3 for further info. Valid range [0dB..-19dB].
     #[builder(default="-2")]
@@ -292,14 +366,20 @@ impl TxRxCfgBuilder {
 }
 
 #[derive(Copy, Clone)]
+/// AdaptiveQ Configuration. The Q factor determines how many slots are made
+/// during a query event (e.g. inventorying). Each tag chooses a random number
+/// from 0..2^Q, which is used in access commands. Note that if this is too small,
+/// there will be slot collisions. If it's too big, there will be overhead.
 pub enum Gen2AdaptiveQ {
-    /// Configure Adaptive Q
+    /// Enable AdaptiveQ Algorithm (default)
     Enable(Gen2AdaptiveQCfg),
     /// Set manual Q
     Disable(u8)
 }
 
 #[derive(Builder, Copy, Clone)]
+/// AdaptiveQ Algorithm configuration. This contains parameters for determining
+/// the Q value automatically. See [`Gen2AdaptiveQ`] for details.
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct Gen2AdaptiveQCfg {
     /// Q Starting value
@@ -375,6 +455,7 @@ impl Gen2AdaptiveQCfgBuilder {
 }
 
 #[derive(Builder, Copy, Clone)]
+/// Options regarding Gen2 inventory rounds. This is part of [`Gen2InventoryCfg`].
 pub struct Gen2InventoryOptions {
     /// Fast Inventory enabling. If set to false, normal inventory round will be performed.
     /// If set to true, fast inventory rounds will be performed.
@@ -402,6 +483,7 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_Gen2_InventoryOption> for Gen2InventoryOptio
 }
 
 #[derive(Builder, Copy, Clone)]
+/// Auto-tuning algorithm parameters. This is used during `inventory_runner` cycles.
 pub struct AutoTuning {
     /// Auto-tuning check interval (in inventory rounds)
     #[builder(default="7")]
@@ -431,6 +513,9 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_AutoTuning> for AutoTuning {
 }
 
 #[derive(Builder, Copy, Clone)]
+/// Gen2 Query paremeter parameters. These are used by the firmware
+/// during Query events (all data exchanges between reader and tag
+/// require Query events).
 pub struct Gen2QueryParams {
     /// QUERY command Sel field
     #[builder(default = "QuerySel::All")]
@@ -467,6 +552,9 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_Gen2_QueryParams> for Gen2QueryParams {
 }
 
 #[derive(Copy, Clone, PartialEq)]
+/// Automatic reciever sensitivity setting. Currently this is
+/// only a boolean, as the algorithm parameters in the firmware
+/// are too vague.
 pub struct AutoRxSensitivity {
     enable: bool
 }
@@ -489,6 +577,9 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_AdaptiveSensitivity> for AutoRxSensitivity {
 }
 
 #[derive(Copy, Clone, PartialEq)]
+/// Automatic transmission strength setting. Currently this is
+/// only a boolean, as the algorithm parameters in the firmware
+/// are too vague.
 pub struct AutoTxStrength {
     enable: bool
 }
@@ -511,6 +602,9 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_AdaptiveOutputPower> for AutoTxStrength {
 }
 
 #[derive(Builder, Copy, Clone)]
+/// Settings for Gen2 Inventorying. Note that [`Gen2InventoryOptions`] is a only subset of
+/// these settings. See [`Self::builder()`] for details.
+/// See also: [`Gen2Cfg`]
 pub struct Gen2InventoryCfg {
     /// Extra inventory options
     #[builder(default = "Gen2InventoryOptionsBuilder::default().build().unwrap()")]
@@ -548,6 +642,8 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_Gen2_InventoryCfg> for Gen2InventoryCfg {
 }
 
 #[derive(Builder, Copy, Clone)]
+/// Gen2 protocol settings. These factors affect the transmission
+/// speed and reliability of the air protocol.
 pub struct Gen2ProtocolCfg {
     /// Tari setting
     #[builder(default = "Gen2Tari::Six")]
@@ -576,14 +672,17 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_Gen2_ProtocolCfg> for Gen2ProtocolCfg {
     }
 }
 
-/// Listen Before Talk
+/// Listen-Before-Talk configuration.
 #[derive(Copy, Clone)]
 pub enum Lbt {
+    /// Enable Listen-Before-Talk
     Enable(LbtCfg),
+    /// Disable Listen-Before-Talk (default)
     Disable,
 }
 
 #[derive(Builder, Copy, Clone)]
+/// Configuration settings for Listen-Before-Talk. See [`Lbt`] for details.
 pub struct LbtCfg {
     /// Length of listening period
     #[builder(default = "1")]
@@ -615,7 +714,9 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_FreqLBT> for Lbt {
     }
 }
 
-// Capacitance values of self-jamming PI-capacitor network
+/// Capacitance values of self-jamming PI-capacitor network. See
+/// ST25RU3993 self-jamming implementation details. See [`ChannelListCfg`]
+/// for details.
 #[derive(Copy, Clone)]
 pub struct TuningCaps {
     /// IN capacitance of tuning network
@@ -637,6 +738,7 @@ impl Default for TuningCaps {
 }
 
 impl TuningCaps {
+    /// Create tuning caps from manually-specified values.
     pub fn from(cin: u8, clen: u8, cout: u8) -> Self {
         Self {
             cin, clen, cout,
@@ -655,6 +757,7 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_Caps> for TuningCaps {
 }
 
 #[derive(Copy, Clone)]
+/// A single frequency configuration in a [`ChannelListCfg`].
 pub struct ChannelItem {
     /// Frequency to be used for channel item (Hz)
     frequency: u32,
@@ -663,6 +766,8 @@ pub struct ChannelItem {
 }
 
 impl ChannelItem {
+    /// Create [`ChannelItem`] from frequency (Hz), using default tuning
+    /// capacitor values (recommended).
     pub fn from_freq(frequency: u32) -> Self {
         Self {
             frequency,
@@ -670,6 +775,8 @@ impl ChannelItem {
         }
     }
 
+    /// Create [`ChannelItem`] from frequency (Hz), manually specifying
+    /// each tuning capacitor value. Advanced usage only!
     pub fn from(frequency: u32, caps: [TuningCaps; 2]) -> Self {
         Self {
             frequency,
@@ -689,17 +796,21 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_ChannelItem> for ChannelItem {
 }
 
 #[derive(Clone)]
+/// Contains a list of [`ChannelItem`]. This represents all
+/// the frequencies the reader can try to use during transmission.
 pub struct ChannelListCfg {
     item_list: Vec<ChannelItem>,
 }
 
 impl ChannelListCfg {
+    /// Create a ChannelList manually (advanced usage).
     pub fn from(item_list: &[ChannelItem]) -> Self {
         Self {
             item_list: Vec::from(item_list)
         }
     }
 
+    /// Create a ChannelList using a profile specified in the firmware
     pub fn from_profile(profile: Profile) -> Self {
         Self {
             item_list: profile_to_item_list(profile)
@@ -718,6 +829,7 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_ChannelList> for ChannelListCfg {
 }
 
 #[derive(Builder, Copy, Clone)]
+/// Frequency hopping configuration. See [`Self::builder()`] for more.
 pub struct FreqHopCfg {
     /// Max sending time before frequency hopping is performed. Minimum value: 40ms
     #[builder(default = "400")]
@@ -744,6 +856,7 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_FreqHop> for FreqHopCfg {
 }
 
 #[derive(Builder, Clone)]
+/// Gen2 Master configuration
 pub struct Gen2Cfg {
     /// Antenna configuration
     #[builder(default = "TxRxCfg::builder().build().unwrap()")]
@@ -768,15 +881,18 @@ pub struct Gen2Cfg {
 impl Builder<Gen2CfgBuilder> for Gen2Cfg {}
 
 #[derive(Debug, PartialEq, Clone)]
+/// Container for hexadecimal-based ID values such as TID, XPC, and EPC.
 pub struct HexID {
     pub(crate) id: Vec<u8>
 }
 
 impl HexID {
+    /// Create a HexID from a list of integers.
     pub fn from_id(id: Vec<u8>) -> HexID {
         HexID{id}
     }
 
+    /// Get a HexID as a list of integers.
     pub fn get_id(&self) -> &[u8] {
         &self.id[..]
     }
@@ -790,6 +906,7 @@ impl fmt::Display for HexID {
     }
 }
 
+/// HexID type to be used only for XPC numbers.
 pub type Xpc = HexID;
 
 impl From<ffi::STUHFL_T_InventoryTagXPC> for Xpc {
@@ -798,6 +915,7 @@ impl From<ffi::STUHFL_T_InventoryTagXPC> for Xpc {
     }
 }
 
+/// HexID type to be used only for EPC numbers.
 pub type Epc = HexID;
 
 impl From<ffi::STUHFL_T_InventoryTagEPC> for Epc {
@@ -806,6 +924,7 @@ impl From<ffi::STUHFL_T_InventoryTagEPC> for Epc {
     }
 }
 
+/// HexID type to be used only for TID numbers.
 pub type Tid = HexID;
 
 impl From<ffi::STUHFL_T_InventoryTagTID> for Tid {
@@ -815,6 +934,8 @@ impl From<ffi::STUHFL_T_InventoryTagTID> for Tid {
 }
 
 #[derive(Clone, PartialEq)]
+/// Contains all data related to an RFID tag found during an inventory cycle.
+/// These values are populated automatically by the firmware.
 pub struct InventoryTag {
     /// Tag detection slot ID
     pub slot_id: u32,
@@ -862,6 +983,8 @@ impl From<ffi::STUHFL_T_InventoryTag> for InventoryTag {
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
+/// Statistics related to an inventory run. These settings are
+/// generated by the firmware.
 pub struct InventoryStatistics {
     /// Timestamp since last statistics update.
     pub timestamp: u32,

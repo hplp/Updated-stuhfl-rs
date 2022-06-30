@@ -27,6 +27,8 @@
 //! reader.configure_gen2(&gen2_cfg);
 //! ```
 
+#![warn(missing_docs)]
+
 #[macro_use]
 extern crate enum_primitive;
 
