@@ -13,11 +13,11 @@ reader_tests = ["port_scanning"]
 
 [dependencies]
 ffi = { package = "libstuhfl-sys", version = "0.1.0", path = "../libstuhfl-sys" }
-enum_primitive = "*"
-num = "*"
-derive_builder = "*"
-serialport = { version = "*", optional = true }
-lazy_static = "*"
+enum_primitive = "0.1"
+num = "0.4"
+derive_builder = "0.11"
+serialport = { version = "4.2", optional = true }
+lazy_static = "1.4"
 
 [dev-dependencies]
-serial_test = "*"
+serial_test = "0.7"

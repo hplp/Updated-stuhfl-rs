@@ -1,7 +1,5 @@
 use super::*;
 
-use std::sync::{Arc, Mutex};
-
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 
 #[cfg(feature = "reader_tests")]
@@ -111,6 +109,7 @@ fn gen2_inventory() -> TestResult {
 #[serial]
 #[cfg(feature = "reader_tests")]
 fn gen2_inventory_runner() -> TestResult {
+    use std::sync::{Arc, Mutex};
 
     // connect to reader
     let mut reader = ST25RU3993::new()?;
@@ -134,7 +133,7 @@ fn gen2_inventory_runner() -> TestResult {
         let mut tags = tags2.lock().unwrap();
         tags.push(tag);
     };
-    
+
     // run inventory
     let statitistics = reader.inventory_runner(20, Box::new(callback))?;
 

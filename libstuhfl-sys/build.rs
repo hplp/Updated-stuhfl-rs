@@ -44,6 +44,7 @@ fn main() {
         .files(src.iter())
         .includes(include.iter())
         .define(def_os, None)
+        .flag("-w")
         .compile("stuhfl");
 
     // Recompile program if library is modified

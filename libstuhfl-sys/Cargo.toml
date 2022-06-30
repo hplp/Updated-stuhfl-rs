@@ -17,4 +17,4 @@ bindgen = "0.60"
 
 [dev-dependencies]
  # serialport is only needed for reader_tests, but dev-dependencies are not allowed to be optional
-serialport = "*"
+serialport = "4.2"

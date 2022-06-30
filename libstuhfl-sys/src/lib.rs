@@ -3,26 +3,25 @@
 #![allow(non_snake_case)]
 #![allow(clippy::derivable_impls)]
 
+#[cfg(test)]
+#[cfg(feature = "reader_tests")]
+extern crate serialport;
+
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
-
-//mod bindings;
-//use bindings::*;
-
-// Tests that actually use the reader
 
 mod initializers;
 pub use initializers::*;
 
-#[cfg(unix)]
 #[cfg(test)]
 mod tests {
-    //use std::mem;
-    //use std::ffi::*;
-    //use super::*;
-
     #[test]
     #[cfg(feature = "reader_tests")]
     fn connect_to_reader() {
+        use super::*;
+        use std::ffi::{CString,CStr};
+        use std::mem;
+        use serialport as sp;
+
         let mut found_port: Option<String> = None;
     
         if let Ok(ports) = sp::available_ports() {
