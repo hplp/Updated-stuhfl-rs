@@ -197,7 +197,6 @@ fn gen2_read() -> TestResult {
     // tune the reader
     reader.tune_freqs(TuningAlgorithm::Exact)?;
 
-    // run the inventory (TODO - use the tags found to select with)
     let (_, tags) = reader.inventory()?;
 
     for tag in tags {
@@ -206,6 +205,36 @@ fn gen2_read() -> TestResult {
         let epc = reader.read_gen2(Gen2MemoryBank::Epc, 0x02, 12, None)?;
         assert!(epc == tag.epc.get_id());
     }
+
+    Ok(())
+}
+
+#[test]
+#[serial]
+#[cfg(feature = "reader_tests")]
+fn gen2_write() -> TestResult {
+    // Connect to reader
+    let mut reader = ST25RU3993::new()?;
+
+    // Set configuration
+    let gen2_cfg = Gen2Cfg::builder().build()?;
+    reader.configure_gen2(&gen2_cfg)?;
+
+    // Tune reader
+    reader.tune_freqs(TuningAlgorithm::Exact)?;
+
+    // Run an inventory
+    let (_statistics, tags) = reader.inventory()?;
+
+    if tags.is_empty() { panic!("No tags found") }
+
+    reader.select_gen2(&tags[0].epc)?;
+
+    let reply = reader.write_gen2(Gen2MemoryBank::User, 0x00, [0x55, 0x55], None)?;
+
+    println!("Tag reply: {}", reply);
+
+    assert_eq!(reader.read_gen2(Gen2MemoryBank::User, 0x00, 2, None)?, [0x55, 0x55]);
 
     Ok(())
 }

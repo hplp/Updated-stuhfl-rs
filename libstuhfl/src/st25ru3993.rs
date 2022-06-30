@@ -453,7 +453,7 @@ impl ST25RU3993 {
     /// 
     /// This function will return [`Error::None`] if no protocol
     /// has been configured, or if `num_rounds == 0`. If the callback
-    /// panics then the funciton will return [`Error::General`]. 
+    /// panics then the funciton will return [`Error::Generic`]. 
     /// 
     /// # Panics
     /// 
@@ -580,8 +580,8 @@ impl ST25RU3993 {
 
     /// # Reading a tag
     /// 
-    /// This command allows a tag to be read. Note that each
-    /// address in the memory bank contains two bytes (one word).
+    /// This command allows a tag to be read. Note: be sure to
+    /// select a tag first, or the read order will be random.
     /// 
     /// # Example
     /// 
@@ -638,6 +638,31 @@ impl ST25RU3993 {
 
         // Return result
         Ok(result)
+    }
+
+    /// # Writing to a tag
+    /// 
+    /// This command allows you to write to a tag. Note that
+    /// you should select a tag before writing.
+    pub fn write_gen2(&mut self, memory_bank: Gen2MemoryBank, word_ptr: u32, data: [u8; 2], password: Option<[u8; 4]>) -> Result<u8, Error> {
+        // Make sure protocol is set up first
+        if self.protocol.is_none() { return Err(Error::None) };
+
+        let mut write_struct = ffi::STUHFL_T_Write {
+            wordPtr: word_ptr,
+            memoryBank: memory_bank as u8,
+            pwd: if let Some(pwd) = password {
+                pwd
+            } else {
+                [0; 4]
+            },
+            data,
+            tagReply: 0,
+        };
+
+        unsafe{proc_err(ffi::Gen2_Write(&mut write_struct))?}
+
+        Ok(write_struct.tagReply)
     }
 }
 
