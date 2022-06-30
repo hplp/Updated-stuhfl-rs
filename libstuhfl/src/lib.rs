@@ -1,6 +1,6 @@
 //! # ST Ultra High Frequency RFID Library wrapper
 //! 
-//! Safe rust wrappers for the libstuhfl C middleware library.
+//! Safe rust wrappers for the libstuhfl C middleware library. See [`ST25RU3993`] to get started.
 //! 
 //! ## Example
 //! 

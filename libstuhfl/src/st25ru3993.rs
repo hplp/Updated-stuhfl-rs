@@ -17,21 +17,29 @@ lazy_static! {
     static ref CB_HOLDER: Mutex<Option<Box<CallbackFn>>> = Mutex::new(None);
 }
 
-/// Represents an ST25RU3993 Reader.
+/// # ST25RU3993 Reader
+/// 
+/// Contains all the logic for intializing and interacting with an ST25RU3993 Reader.
+/// See this struct's methods for details.
+/// 
+/// # Example
+/// 
 /// ```no_run
-/// use libstuhfl::{ST25RU3993, Version};
-/// 
-/// // with port scanning
+/// # use serial_test::*;
+/// # use std::error::Error;
 /// # #[cfg(feature = "port_scanning")]
-/// let mut reader = ST25RU3993::new().expect("Couldn't connect to reader");
+/// # fn main() -> Result<(), Box<dyn Error>> {
+/// use libstuhfl::*;
 /// 
-/// // without port scanning
-/// # #[cfg(not(feature = "port_scanning"))]
-/// let mut reader = ST25RU3993::from_port("/dev/ttyUSB0").expect("Couldn't connect to reader");
+/// let reader = ST25RU3993::new()?; // new requires port scanning feature
 /// 
-/// let version = reader.get_board_version().expect("Failed to get board version");
+/// let version = reader.get_board_version()?;
 /// 
 /// println!("Reader version: {}", &version);
+/// # Ok(())
+/// # }
+/// # #[cfg(not(feature = "port_scanning"))]
+/// # fn main() {}
 /// ```
 pub struct ST25RU3993 {
     protocol: Option<Protocol>,
@@ -41,7 +49,18 @@ pub struct ST25RU3993 {
 extern crate serialport as sp;
 
 impl ST25RU3993 {
-    /// Create a new ST25RU3993 RFID reader by automatically scanning ports
+    /// # Connecting to reader
+    /// 
+    /// Using [`Self::new()`] requires the `port_scanning` feature. This method scans
+    /// all available USB TTY/COM ports on the computer and checks their vendor & product
+    /// ID's. Upon finding a port successfully, the [`Self::from_port()`] method is automatically
+    /// invoked.
+    /// 
+    /// # Errors
+    /// 
+    /// This function errors if the reader cannot be safely connected to. A [`Error::GeneralIo`]
+    /// error will be issued if no valid ports can be found/opened. See [`Self::from_port()`] for
+    /// more info.
     #[cfg(feature = "port_scanning")]
     pub fn new() -> Result<Self, Error> {
         let mut found_port: Option<String> = None;
@@ -49,21 +68,52 @@ impl ST25RU3993 {
         if let Ok(ports) = sp::available_ports() {
             for port in ports {
                 if let sp::SerialPortType::UsbPort(port_info) = port.port_type {
-                    if port_info.vid == 0x403 && port_info.pid == 0x6015 {
-                        sp::new(&port.port_name, 9600).open().expect("Couldn't open port!");
-                        found_port = Some(port.port_name)
+                    if port_info.vid == 0x403 && port_info.pid == 0x6015 && sp::new(&port.port_name, 9600).open().is_ok() {
+                            found_port = Some(port.port_name);
                     }
                 }
             }
         }
-        
-        let found_port = found_port.expect("Reader not found on any ports");
 
-        // hand over creation to normal constructor
-        ST25RU3993::from_port(&found_port)
+        if let Some(found_port) = found_port {
+            // hand over creation to normal constructor
+            ST25RU3993::from_port(&found_port)
+        } else {
+            Err(Error::GeneralIo)
+        }
     }
 
-    /// Create anew ST25RU3993 RFID reader using a path to a specific port
+    /// # Connecting to reader
+    /// 
+    /// Using [`Self::from_port()`] will attempt to connect to the reader using the
+    /// user specified port. Note that it's up to the caller to ensure that this port
+    /// is valid and in an opened state. After connecting to the reader, a check is
+    /// done on the firmware and hardware versions of the board to ensure compatibility.
+    /// 
+    /// # Example
+    /// 
+    /// ```no_run
+    /// # use std::error::Error;
+    /// # use libstuhfl::*;
+    /// # fn main() -> Result<(), Box<dyn Error>> {
+    /// // Open the reader using a specific port
+    /// # let reader = ST25RU3993::new()?;
+    /// 
+    /// #[cfg(unix)]
+    /// let reader = ST25RU3993::from_port("/dev/ttyUSB0")?;
+    /// 
+    /// #[cfg(windows)]
+    /// let reader = ST25RU3993::from_port("COM6")?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    /// 
+    /// # Errors
+    /// 
+    /// This function errors if the reader cannot be safely connected to. The function
+    /// will return [`Error::None`] if the reader's firmware or hardware is incompatible
+    /// with this library.
+    /// 
     pub fn from_port(port: &str) -> Result<Self, Error> {
         unsafe {
             // Copy the port so that its "safe" from C
@@ -90,7 +140,10 @@ impl ST25RU3993 {
         }
     }
 
-    /// Queries software & hardware information from the reader
+    /// # Getting the board version
+    /// 
+    /// This function returns a [`Version`] instance with the reader's
+    /// firmware and hardware information. See [`Self`] for usage.
     pub fn get_board_version(&self) -> Result<Version, Error> {
         unsafe {
             // Create structs to be filled by function
@@ -122,7 +175,8 @@ impl ST25RU3993 {
     }
 
     /// Tests whether the board is compatible or not.
-    /// (This is called automatically by the constructor)
+    /// (This is called automatically by [`Self::from_port()`], so it isn't
+    /// user accessible, otherwise people would run it uneccessarily)
     fn test_compatible(&self) -> Result<bool, Error> {
         const LOWEST_SW_VER: VersionNum = VersionNum {
             major: 3,
@@ -142,38 +196,32 @@ impl ST25RU3993 {
         Ok(ver.sw_ver >= LOWEST_SW_VER && ver.hw_ver >= LOWEST_HW_VER)
     }
 
-    /// Tune the reader using the specified tuning algorithm. Note: must be called
-    /// AFTER configuring a protocol (requires knoweldge of active antenna).
-    pub fn tune_freqs(&mut self, algo: TuningAlgorithm) -> Result<(), Error> {
-        if self.protocol.is_none() {
-            eprintln!("Error: Must configure a protocol before tuning");
-            return Err(Error::None)
-        }
-
-        // None does nothing
-        if algo == TuningAlgorithm::None {
-            return Ok(())
-        }
-
-        // Get the current reader settings, we need to know which antenna is in use
-        let mut tx_rx_cfg = ffi::STUHFL_T_ST25RU3993_TxRxCfg::default();
-        unsafe {proc_err(ffi::Get_TxRxCfg(&mut tx_rx_cfg))?}
-
-        // Create a tune configuration using the antenna & algorithm
-        let mut tune_cfg = ffi::STUHFL_T_ST25RU3993_TuneCfg{
-            antenna: tx_rx_cfg.usedAntenna,
-            algorithm: algo as u8,
-            tuneAll: true,
-            ..Default::default()
-        };
-        
-        // Tune the reader using the configuration
-        unsafe {proc_err(ffi::TuneChannel(&mut tune_cfg))?}
-
-        Ok(())
-    }
-
-    /// Configures the reader for use of the Gen2 protocol
+    /// # Configuring reader
+    /// 
+    /// This function configures the reader for use of the Gen2 protocol.
+    /// See [`Gen2Cfg`] for details. Note: all settings have valid defaults,
+    /// however most can be overrided.
+    /// 
+    /// # Example
+    /// 
+    /// ```
+    /// # use std::error::Error;
+    /// # use libstuhfl::*;
+    /// # #[cfg(feature = "port_scanning")]
+    /// # fn main() -> Result<(), Box<dyn Error>> {
+    /// // Configure reader for use with Gen2 standard
+    /// 
+    /// let mut reader = ST25RU3993::new()?; // new requires port scanning feature
+    /// 
+    /// let cfg = Gen2Cfg::builder().build()?;
+    /// 
+    /// reader.configure_gen2(&cfg)?;
+    /// # Ok(())
+    /// # }
+    /// # #[cfg(not(feature = "port_scanning"))]
+    /// # fn main() {}
+    /// ```
+    /// 
     pub fn configure_gen2(&mut self, gen2_cfg: &Gen2Cfg) -> Result<(), Error> {
         // Reset protocol, in case of invalid state
         self.protocol = None;
@@ -214,8 +262,106 @@ impl ST25RU3993 {
         Ok(())
     }
 
-    /// Inventories tags for the selected protocol (1 Round). 
-    /// Note: be sure to configure a protocol & tune the reader first!
+    /// # Tuning reader
+    /// 
+    /// Tune the reader using the specified tuning algorithm. Note: must be called
+    /// **after** configuring a protocol, in order to know which antenna and frequencies
+    /// to tune. See [`TuningAlgorithm`] for details.
+    /// 
+    /// # Example
+    /// 
+    /// ```no_run
+    /// # use std::error::Error;
+    /// # use libstuhfl::*;
+    /// # #[cfg(feature = "port_scanning")]
+    /// # fn main() -> Result<(), Box<dyn Error>> {
+    /// // Tune reader using configuration for Gen2 standard
+    /// 
+    /// let mut reader = ST25RU3993::new()?; // new requires port scanning feature
+    /// 
+    /// let cfg = Gen2Cfg::builder().build()?;
+    /// 
+    /// reader.configure_gen2(&cfg)?;
+    /// 
+    /// reader.tune_freqs(TuningAlgorithm::Exact)?;
+    /// # Ok(())
+    /// # }
+    /// # #[cfg(not(feature = "port_scanning"))]
+    /// # fn main() {}
+    /// ```
+    /// 
+    /// # Errors
+    /// 
+    /// If no protocol is configured this will return [`Error::None`]. Otherwise
+    /// errors are generated by firmware.
+    /// 
+    pub fn tune_freqs(&mut self, algo: TuningAlgorithm) -> Result<(), Error> {
+        if self.protocol.is_none() {
+            eprintln!("Error: Must configure a protocol before tuning");
+            return Err(Error::None)
+        }
+
+        // None does nothing
+        if algo == TuningAlgorithm::None {
+            return Ok(())
+        }
+
+        // Get the current reader settings, we need to know which antenna is in use
+        let mut tx_rx_cfg = ffi::STUHFL_T_ST25RU3993_TxRxCfg::default();
+        unsafe {proc_err(ffi::Get_TxRxCfg(&mut tx_rx_cfg))?}
+
+        // Create a tune configuration using the antenna & algorithm
+        let mut tune_cfg = ffi::STUHFL_T_ST25RU3993_TuneCfg{
+            antenna: tx_rx_cfg.usedAntenna,
+            algorithm: algo as u8,
+            tuneAll: true,
+            ..Default::default()
+        };
+        
+        // Tune the reader using the configuration
+        unsafe {proc_err(ffi::TuneChannel(&mut tune_cfg))?}
+
+        Ok(())
+    }
+
+    /// # Inventorying tags
+    /// 
+    /// There are two ways to inventory tags, using this command or
+    /// the [`Self::inventory_runner()`] command. This command will only
+    /// run a single round and return a vector of tags. Running this
+    /// in a loop will cause a huge amount of unecessary memory allocations
+    /// and copies, so it is recommended to use [`Self::inventory_runner()`]
+    /// if several rounds are needed.
+    /// 
+    /// # Example
+    /// 
+    /// ```no_run
+    /// # use std::error::Error;
+    /// # use libstuhfl::*;
+    /// # #[cfg(feature = "port_scanning")]
+    /// # fn main() -> Result<(), Box<dyn Error>> {
+    /// // Inventory Gen2 tags
+    /// 
+    /// let mut reader = ST25RU3993::new()?; // new requires port scanning feature
+    /// 
+    /// let cfg = Gen2Cfg::builder().build()?;
+    /// 
+    /// reader.configure_gen2(&cfg)?;
+    /// 
+    /// reader.tune_freqs(TuningAlgorithm::Exact)?;
+    /// 
+    /// let (statistics, tags) = reader.inventory()?;
+    /// 
+    /// println!("{:#?}", statistics);
+    /// 
+    /// for tag in tags {
+    ///     println!("[{}]: {}", tag.slot_id, tag.epc);
+    /// }
+    /// # Ok(())
+    /// # }
+    /// # #[cfg(not(feature = "port_scanning"))]
+    /// # fn main() {}
+    /// ```
     pub fn inventory(&mut self) -> Result<(InventoryStatistics, Vec<InventoryTag>), Error> {
         if self.protocol.is_none() { return Err(Error::None) };
 
@@ -249,46 +395,70 @@ impl ST25RU3993 {
         Ok((statistics, tags))
     }
 
-    /// Inventories tags for the selected protocol (N-Rounds, blocking call).
-    /// Note: be sure to configure a protocol & tune the reader first!
-    ///```no_run
-    /// // connect to reader
-    /// let mut reader = ST25RU3993::new()?;
+    /// # Inventorying tags (threaded)
     /// 
-    /// // set gen2 configuration
-    /// let gen2_cfg = Gen2Cfg::builder()
-    ///     .build()?;
+    /// There are two ways to inventory tags, using this command or
+    /// the [`Self::inventory()`] command. This command will run `num_rounds`
+    /// inventory rounds, and for each round where tags are discovered the
+    /// `data_cb` will be called. Note: this is a blocking call.
     /// 
-    /// // apply the settings
-    /// reader.configure_gen2(&gen2_cfg)?;
+    /// # Example
     /// 
-    /// // tune reader
+    /// ```no_run
+    /// # use std::error::Error;
+    /// # use libstuhfl::*;
+    /// # #[cfg(feature = "port_scanning")]
+    /// # fn main() -> Result<(), Box<dyn Error>> {
+    /// // Inventory Gen2 tags using inventory_runner
+    /// # use std::sync::{Arc,Mutex};
+    /// 
+    /// let mut reader = ST25RU3993::new()?; // new requires port scanning feature
+    /// 
+    /// let cfg = Gen2Cfg::builder().build()?;
+    /// 
+    /// reader.configure_gen2(&cfg)?;
+    /// 
     /// reader.tune_freqs(TuningAlgorithm::Exact)?;
     /// 
     /// // create atomic vector of tags
     /// let tags = Arc::new(Mutex::new(Vec::new()));
     /// let tags2 = Arc::clone(&tags);
-    /// 
+    ///
     /// // create callback function
     /// let callback = move |tag| {
     ///     let mut tags = tags2.lock().unwrap();
     ///     tags.push(tag);
     /// };
-    /// 
-    /// // run inventory with 100 rounds
-    /// let statitistics = reader.inventory_runner(100, Box::new(callback))?;
+    ///
+    /// // run inventory
+    /// let statitistics = reader.inventory_runner(20, Box::new(callback))?;
     /// 
     /// println!("Inventory Statistics:\n{:#?}", statitistics);
     /// println!("Found tags:");
-    /// 
+    ///
     /// // lock tags
     /// let tags = tags.lock().unwrap();
-    /// 
+    ///
     /// // read tags
     /// for tag in &*tags {
     ///     println!("{}", tag.epc);
     /// }
+    /// # Ok(())
+    /// # }
+    /// # #[cfg(not(feature = "port_scanning"))]
+    /// # fn main() {}
     /// ```
+    /// 
+    /// # Errors
+    /// 
+    /// This function will return [`Error::None`] if no protocol
+    /// has been configured, or if `num_rounds == 0`. If the callback
+    /// panics then the funciton will return [`Error::General`]. 
+    /// 
+    /// # Panics
+    /// 
+    /// Any panics generated in `data_cb` will be caught by
+    /// a wrapper callback. This function should never panic.
     pub fn inventory_runner(&mut self, num_rounds: u32, data_cb: Box<CallbackFn>) -> Result<InventoryStatistics, Error> {
         if self.protocol.is_none() { return Err(Error::None) };
 
@@ -320,18 +490,66 @@ impl ST25RU3993 {
         drop(cb_holder);
 
         // Call inventory (blocking)
-        unsafe{proc_err(ffi::Inventory_RunnerStart(&mut inv_option, Some(cycle_cb), None, &mut inv_data))?}
+        let result = unsafe{proc_err(ffi::Inventory_RunnerStart(&mut inv_option, Some(cycle_cb), None, &mut inv_data))};
+        
+        let cb_success = if CB_HOLDER.is_poisoned() {
+            Err(Error::Generic)
+        } else {
+            Ok(())
+        };
 
         // Delete callback function
-        let mut cb_holder = CB_HOLDER.lock().unwrap();
-        *cb_holder = None;
+        let mut guard = match CB_HOLDER.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => poisoned.into_inner(),
+        };
+        *guard = None;
+
+        // Return any errors due to inventory failing
+        result?;
+
+        // Return any errors due to poisoning
+        cb_success?;
 
         let statistics = InventoryStatistics::from(inv_data.statistics);
 
         Ok(statistics)
     }
 
-    /// Selects a tag using its EPC number
+    /// # Selecting a tag
+    /// 
+    /// This function allows you to select an invdividual tag using its EPC number.
+    /// By doing so, access functions such as read can be safely used.
+    /// 
+    /// # Example
+    /// 
+    /// ```no_run
+    /// # use std::error::Error;
+    /// # use libstuhfl::*;
+    /// # #[cfg(feature = "port_scanning")]
+    /// # fn main() -> Result<(), Box<dyn Error>> {
+    /// // Select a gen2 tag
+    /// 
+    /// let mut reader = ST25RU3993::new()?; // new requires port scanning feature
+    /// 
+    /// let cfg = Gen2Cfg::builder().build()?;
+    /// 
+    /// reader.configure_gen2(&cfg)?;
+    /// 
+    /// reader.tune_freqs(TuningAlgorithm::Exact)?;
+    /// 
+    /// let (_statistics, tags) = reader.inventory()?;
+    /// 
+    /// if tags.is_empty() { panic!("Tags list is empty") }
+    /// 
+    /// // note: this selects the first tag found
+    /// reader.select_gen2(&tags[0].epc)?;
+    /// # Ok(())
+    /// # }
+    /// # #[cfg(not(feature = "port_scanning"))]
+    /// # fn main() {}
+    /// ```
+    /// 
     pub fn select_gen2(&mut self, epc: &Epc) -> Result<(), Error> {
 
         let mut mask = [0; 32];
@@ -360,8 +578,41 @@ impl ST25RU3993 {
         Ok(())
     }
 
-    /// Reads data from a selected tag.
-    /// Make sure to call select_gen2 first!
+    /// # Reading a tag
+    /// 
+    /// This command allows a tag to be read. Note that each
+    /// address in the memory bank contains two bytes (one word).
+    /// 
+    /// # Example
+    /// 
+    /// ```no_run
+    /// # use std::error::Error;
+    /// # use libstuhfl::*;
+    /// # #[cfg(feature = "port_scanning")]
+    /// # fn main() -> Result<(), Box<dyn Error>> {
+    /// // Read gen2 tags' EPC memory bank
+    /// 
+    /// let mut reader = ST25RU3993::new()?; // new requires port scanning feature
+    /// 
+    /// let cfg = Gen2Cfg::builder().build()?;
+    /// 
+    /// reader.configure_gen2(&cfg)?;
+    /// 
+    /// reader.tune_freqs(TuningAlgorithm::Exact)?;
+    /// 
+    /// let (_statistics, tags) = reader.inventory()?;
+    /// 
+    /// for tag in tags {
+    ///     println!("Found tag {}", &tag.epc);
+    ///     reader.select_gen2(&tag.epc)?;
+    ///     let epc = reader.read_gen2(Gen2MemoryBank::Epc, 0x02, 12, None)?;
+    ///     assert!(epc == tag.epc.get_id());
+    /// }
+    /// # Ok(())
+    /// # }
+    /// # #[cfg(not(feature = "port_scanning"))]
+    /// # fn main() {}
+    /// ```
     pub fn read_gen2(&mut self, memory_bank: Gen2MemoryBank, word_ptr: u32, num_bytes: u8, password: Option<[u8; 4]>) -> Result<Vec<u8>, Error> {
         // Make sure protocol is set up first
         if self.protocol.is_none() { return Err(Error::None) };
@@ -390,10 +641,19 @@ impl ST25RU3993 {
     }
 }
 
+/// Wrapper for user specified callback funciton. This catches any unwind panics, and
+/// processes the inventory data from FFI form into Rust form.
+/// 
+/// # Panics
+/// 
+/// Any panics will be caught by the `catch_unwind`, then turned into an error.
+/// However, doing so **will** poison the Mutex.
 extern "C" fn cycle_cb(data: *mut ffi::STUHFL_T_InventoryData) -> ffi::STUHFL_T_RET_CODE {
     let cb_wrapper = std::panic::catch_unwind(|| {
         // Get user defined callback function
         let cb_holder = CB_HOLDER.lock().unwrap();
+
+        // Access callback function
         let cb_fn = cb_holder.as_ref().unwrap();
 
         // Access data from behind pointer
@@ -409,7 +669,8 @@ extern "C" fn cycle_cb(data: *mut ffi::STUHFL_T_InventoryData) -> ffi::STUHFL_T_
     });
 
     if cb_wrapper.is_err() {
-        // callback unwrapped
+        // callback unwrapped, mutex now poisoned
+        unsafe{ffi::Inventory_RunnerStop()};
         Error::Generic as ffi::STUHFL_T_RET_CODE
     } else {
         // callback finished
@@ -417,7 +678,10 @@ extern "C" fn cycle_cb(data: *mut ffi::STUHFL_T_InventoryData) -> ffi::STUHFL_T_
     }
 }
 
-/// Automatically handles disconnecting from the reader.
+/// # Disconnect from reader
+/// 
+/// This is handled automatically by the Drop implementation. If the reader fails
+/// to disconnect for some reason, a warning message will be printed.
 impl Drop for ST25RU3993 {
     fn drop(&mut self) {
         unsafe {

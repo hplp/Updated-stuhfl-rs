@@ -154,6 +154,34 @@ fn gen2_inventory_runner() -> TestResult {
 #[test]
 #[serial]
 #[cfg(feature = "reader_tests")]
+fn gen2_inventory_runner_error() -> TestResult {
+    // connect to reader
+    let mut reader = ST25RU3993::new()?;
+
+    // set gen2 configuration
+    let gen2_cfg = Gen2Cfg::builder()
+        .build()?;
+    
+    // apply the settings
+    reader.configure_gen2(&gen2_cfg)?;
+
+    // tune reader
+    reader.tune_freqs(TuningAlgorithm::Exact)?;
+
+    // create callback function
+    let callback = |_tag| {
+        panic!()
+    };
+
+    // run inventory
+    assert!(reader.inventory_runner(20, Box::new(callback)).is_err());
+
+    Ok(())
+}
+
+#[test]
+#[serial]
+#[cfg(feature = "reader_tests")]
 fn gen2_read() -> TestResult {
 
     // connect to reader
@@ -172,25 +200,12 @@ fn gen2_read() -> TestResult {
     // run the inventory (TODO - use the tags found to select with)
     let (_, tags) = reader.inventory()?;
 
-    // must find tags to continue with test
-    if tags.is_empty() {
-       panic!("Empty tag list!");
+    for tag in tags {
+        println!("Found tag {}", &tag.epc);
+        reader.select_gen2(&tag.epc)?;
+        let epc = reader.read_gen2(Gen2MemoryBank::Epc, 0x02, 12, None)?;
+        assert!(epc == tag.epc.get_id());
     }
-
-    // print found tags
-    println!("Found tags:");
-    for tag in &tags {
-        println!("{}", tag.epc);
-    }
-
-    // select the first found tag
-    reader.select_gen2(&tags[0].epc)?;
-
-    // read from the tag
-    let data = reader.read_gen2(Gen2MemoryBank::User, 0xEC, 3, None)?;
-
-    // print read bytes
-    println!("Read bytes {}: {:?}", data.len(), data);
 
     Ok(())
 }
