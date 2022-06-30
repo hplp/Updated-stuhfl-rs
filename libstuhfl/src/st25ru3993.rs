@@ -1,5 +1,7 @@
 use super::*;
 
+use std::sync::{Arc, Mutex};
+
 #[allow(dead_code)]
 enum Protocol {
     Gen2,
@@ -241,7 +243,7 @@ impl ST25RU3993 {
 
     /// Inventories tags for the selected protocol (N-Rounds, blocking call).
     /// Note: be sure to configure a protocol & tune the reader first!
-    pub fn inventory_runner(&mut self, num_rounds: u32) -> Result<(InventoryStatistics, Vec<InventoryTag>), Error> {
+    pub fn inventory_runner(&mut self, num_rounds: u32, data_cb: Box<CallbackFn>) -> Result<InventoryStatistics, Error> {
         if self.protocol.is_none() { return Err(Error::None) };
 
         if num_rounds == 0 {
@@ -266,22 +268,63 @@ impl ST25RU3993 {
             ..Default::default()
         };
 
-        // clear tag data from global
-        unsafe{CB_TAGS.clear()}
+        // Save callback function
+        let mut cb_holder = CB_HOLDER.lock().unwrap();
+        *cb_holder = Some(data_cb);
+        drop(cb_holder);
 
         // Call inventory (blocking)
         unsafe{proc_err(ffi::Inventory_RunnerStart(&mut inv_option, Some(cycle_cb), None, &mut inv_data))?}
 
-        // save data into iterator
-        let tags = unsafe{CB_TAGS.clone()};
+        // Delete callback function
+        let mut cb_holder = CB_HOLDER.lock().unwrap();
+        *cb_holder = None;
 
         let statistics = InventoryStatistics::from(inv_data.statistics);
 
-        Ok((statistics, tags))
+        Ok(statistics)
     }
 
     /// Selects a tag using its EPC number
-    pub fn select_gen2(&mut self, epc: Epc) -> Result<(), Error> {
+    ///```no_run
+    /// // connect to reader
+    /// let mut reader = ST25RU3993::new()?;
+    /// 
+    /// // set gen2 configuration
+    /// let gen2_cfg = Gen2Cfg::builder()
+    ///     .build()?;
+    /// 
+    /// // apply the settings
+    /// reader.configure_gen2(&gen2_cfg)?;
+    /// 
+    /// // tune reader
+    /// reader.tune_freqs(TuningAlgorithm::Exact)?;
+    /// 
+    /// // create atomic vector of tags
+    /// let tags = Arc::new(Mutex::new(Vec::new()));
+    /// let tags2 = Arc::clone(&tags);
+    /// 
+    /// // create callback function
+    /// let callback = move |tag| {
+    ///     let mut tags = tags2.lock().unwrap();
+    ///     tags.push(tag);
+    /// };
+    /// 
+    /// // run inventory with 100 rounds
+    /// let statitistics = reader.inventory_runner(100, Box::new(callback))?;
+    /// 
+    /// println!("Inventory Statistics:\n{:#?}", statitistics);
+    /// println!("Found tags:");
+    /// 
+    /// // lock tags
+    /// let tags = tags.lock().unwrap();
+    /// 
+    /// // read tags
+    /// for tag in &*tags {
+    ///     println!("{}", tag.epc);
+    /// }
+    /// ```
+    pub fn select_gen2(&mut self, epc: &Epc) -> Result<(), Error> {
 
         let mut mask = [0; 32];
 
@@ -339,15 +382,26 @@ impl ST25RU3993 {
     }
 }
 
-static mut CB_TAGS: Vec<InventoryTag> = Vec::new();
+lazy_static! {
+    // Note: In rust 1.63 this will no longer require the lazy_static crate.
+    static ref CB_HOLDER: Mutex<Option<Box<CallbackFn>>> = Mutex::new(None);
+}
 
-unsafe extern "C" fn cycle_cb(data: *mut ffi::STUHFL_T_InventoryData) -> ffi::STUHFL_T_RET_CODE {
+extern "C" fn cycle_cb(data: *mut ffi::STUHFL_T_InventoryData) -> ffi::STUHFL_T_RET_CODE {
     if std::panic::catch_unwind(|| {
+        // Get user defined callback function
+        let cb_holder = CB_HOLDER.lock().unwrap();
+        let cb_fn = cb_holder.as_ref().unwrap();
+
+        // Access data from behind pointer
+        let data = unsafe{&*data};
+
         // Copy every scanned tag into the vector
-        for i in 0..(*data).tagListSize {
-            let tag =  (*data).tagList.offset(i as isize);
-            // Also convert the tag into the user-friendly version of the struct
-            CB_TAGS.push(InventoryTag::from(*tag));
+        for i in 0..data.tagListSize {
+            // Index pointer to array and convert it to InventoryTag
+            let tag = InventoryTag::from(unsafe{*data.tagList.offset(i as isize)});
+            // Let caller handle values
+            cb_fn(InventoryTag::from(tag));
         }
     }).is_err() {
         // callback unwrapped

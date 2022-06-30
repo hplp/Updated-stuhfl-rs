@@ -17,6 +17,7 @@ enum_primitive = "*"
 num = "*"
 derive_builder = "*"
 serialport = { version = "*", optional = true }
+lazy_static = "*"
 
 [dev-dependencies]
 serial_test = "*"

@@ -923,3 +923,6 @@ impl From<ffi::STUHFL_T_InventoryStatistics> for InventoryStatistics {
         }
     }
 }
+
+/// Function type to be used with inventory_runner
+pub type CallbackFn = dyn Fn(InventoryTag) + Send;

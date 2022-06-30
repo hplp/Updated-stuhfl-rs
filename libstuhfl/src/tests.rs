@@ -1,5 +1,7 @@
 use super::*;
 
+use std::sync::{Arc, Mutex};
+
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 
 #[cfg(feature = "reader_tests")]
@@ -108,7 +110,7 @@ fn gen2_inventory() -> TestResult {
 #[test]
 #[serial]
 #[cfg(feature = "reader_tests")]
-fn gen2_inventory_continuous() -> TestResult {
+fn gen2_inventory_runner() -> TestResult {
 
     // connect to reader
     let mut reader = ST25RU3993::new()?;
@@ -122,14 +124,28 @@ fn gen2_inventory_continuous() -> TestResult {
 
     // tune reader
     reader.tune_freqs(TuningAlgorithm::Exact)?;
+
+    // create atomic vector of tags
+    let tags = Arc::new(Mutex::new(Vec::new()));
+    let tags2 = Arc::clone(&tags);
+
+    // create callback function
+    let callback = move |tag| {
+        let mut tags = tags2.lock().unwrap();
+        tags.push(tag);
+    };
     
     // run inventory
-    let (statitistics, tags) = reader.inventory_runner(20)?;
+    let statitistics = reader.inventory_runner(20, Box::new(callback))?;
 
     println!("Inventory Statistics:\n{:#?}", statitistics);
     println!("Found tags:");
 
-    for tag in tags {
+    // lock tags
+    let tags = tags.lock().unwrap();
+
+    // read tags
+    for tag in &*tags {
         println!("{}", tag.epc);
     }
 
@@ -159,17 +175,17 @@ fn gen2_read() -> TestResult {
 
     // must find tags to continue with test
     if tags.is_empty() {
-        return Err(Box::new("Empty tag list!".to_owned()));
+       panic!("Empty tag list!");
     }
 
     // print found tags
     println!("Found tags:");
-    for tag in tags {
+    for tag in &tags {
         println!("{}", tag.epc);
     }
 
     // select the first found tag
-    reader.select_gen2(tags[0].epc)?;
+    reader.select_gen2(&tags[0].epc)?;
 
     // read from the tag
     let data = reader.read_gen2(Gen2MemoryBank::User, 0xEC, 3, None)?;
