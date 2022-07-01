@@ -204,7 +204,7 @@ impl ST25RU3993 {
     /// 
     /// # Example
     /// 
-    /// ```
+    /// ```no_run
     /// # use std::error::Error;
     /// # use libstuhfl::*;
     /// # #[cfg(feature = "port_scanning")]
