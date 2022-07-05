@@ -898,6 +898,14 @@ impl HexID {
     }
 }
 
+impl std::ops::Index<usize> for HexID {
+    type Output = u8;
+
+    fn index(&self, i: usize) -> &Self::Output {
+        &self.id[i]
+    }
+}
+
 impl fmt::Display for HexID {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut id = self.id.iter().fold(String::new(), |a, b| a + &format!("{:02X}", b) + ":");
@@ -1049,3 +1057,45 @@ impl From<ffi::STUHFL_T_InventoryStatistics> for InventoryStatistics {
 
 /// Function type to be used with inventory_runner
 pub type CallbackFn = dyn Fn(InventoryTag) + Send;
+
+#[derive(Copy, Clone, PartialEq)]
+/// Contains settings used to issue custom commands to the RFID reader.
+/// Warning: expect_header **does nothing** when CRC is disabled.
+pub struct Gen2CustomCommand {
+    /// Enable sending and recieving CRC codes in the packets.
+    pub use_crc: bool,
+    /// Enable sending and recieving RN16 codes in the packets.
+    pub use_rn16: bool,
+    /// Gen2 Command code designation. Note: only 16-bit commands
+    /// are supported. This includes all *custom* and *proprietary*
+    /// command codes according to the standard.
+    pub command_code: u16,
+    /// Whether or not to expect a header bit in recieved packets.
+    /// Note that [`self.use_crc = true`] is **required** for this to work
+    /// as expected.
+    pub expect_header: bool,
+}
+
+/// Data to be sent with a custom RFID command
+pub struct Gen2CustomCommandData<'a> {
+    pub(crate) num_bits: u16,
+    pub(crate) bytes: &'a [u8],
+}
+
+impl<'a> Gen2CustomCommandData<'a> {
+    /// Create a data packet using a slice of bytes and a bit length.
+    /// Note: if num_bits is too small or large this will fail.
+    pub fn new(num_bits: usize, bytes: &'a [u8]) -> Option<Self> {
+        let max_bits = bytes.len() * 8;
+        let min_bits = max_bits - 8;
+
+        if num_bits >= max_bits || num_bits < min_bits {
+            None
+        } else {
+            Some(Self {
+                num_bits: num_bits as u16,
+                bytes
+            })
+        }
+    }
+}

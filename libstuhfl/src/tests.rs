@@ -217,14 +217,17 @@ fn gen2_write() -> TestResult {
     let mut reader = ST25RU3993::new()?;
 
     // Set configuration
-    let gen2_cfg = Gen2Cfg::builder().build()?;
+    let gen2_cfg = Gen2Cfg::builder()
+        .build()?;
+    
+    // Apply configuration
     reader.configure_gen2(&gen2_cfg)?;
 
     // Tune reader
     reader.tune_freqs(TuningAlgorithm::Exact)?;
 
     // Run an inventory
-    let (_statistics, tags) = reader.inventory()?;
+    let (_, tags) = reader.inventory()?;
 
     if tags.is_empty() { panic!("No tags found") }
 
@@ -235,6 +238,119 @@ fn gen2_write() -> TestResult {
     println!("Tag reply: {}", reply);
 
     assert_eq!(reader.read_gen2(Gen2MemoryBank::User, 0x00, 2, None)?, [0x55, 0x55]);
+
+    Ok(())
+}
+
+#[test]
+#[serial]
+#[cfg(feature = "reader_tests")]
+fn gen2_custom_ffi() -> TestResult {
+    // Connect to reader
+    let mut reader = ST25RU3993::new().expect("failed to connect to reader");
+
+    // Set configuration
+    let gen2_cfg = Gen2Cfg::builder()
+        .build()?;
+    
+    // Apply configuration
+    reader.configure_gen2(&gen2_cfg)?;
+
+    // Tune reader
+    reader.tune_freqs(TuningAlgorithm::Exact)?;
+
+    // Run an inventory
+    let (_, tags) = reader.inventory().expect("failed to inventory tags");
+
+    // Select tag
+    if tags.is_empty() { panic!("No tags found") }
+    reader.select_gen2(&tags[0].epc).expect("failed to select tag");
+
+    // Chose number of bytes to read
+    let nb_words = 2u8;
+
+    // Create struct
+    let mut generic_cmd_struct = ffi::STUHFL_T_Gen2_GenericCmd {
+        cmd: ffi::STUHFL_D_GEN2_GENERIC_CMD_CRC_EXPECT_HEAD as u8,
+        noResponseTime: 0xFF,
+        appendRN16: true,
+        sndDataBitLength: 26, // CMD[8] + BANK[2] + PTR[EBV,8] + LEN[8]
+        sndData: [0; 64],
+        expectedRcvDataBitLength: ((nb_words*2*8) + 16) as u16, // READ_BYTES * 16 + RN16
+        // defaults
+        pwd: [0; 4],
+        rcvData: [0; 128],
+        rcvDataLength: 0,
+    };
+
+    // override sndData
+    generic_cmd_struct.sndData[0] = 0xC2;
+    generic_cmd_struct.sndData[1] = 0xC0;
+    generic_cmd_struct.sndData[2] = nb_words >> 2;
+    generic_cmd_struct.sndData[3] = nb_words << 6;
+
+    // Write memory to test against
+    reader.write_gen2(Gen2MemoryBank::User, 0x00, [0x73, 0x42], None)?;
+    reader.write_gen2(Gen2MemoryBank::User, 0x01, [0x53, 0x13], None)?;
+
+    // Read using custom read command
+    unsafe{proc_err(ffi::Gen2_GenericCmd(&mut generic_cmd_struct))?};
+
+    // Check read bytes
+    assert_eq!(generic_cmd_struct.rcvData[..nb_words as usize * 2], [0x73, 0x42, 0x53, 0x13]);
+
+    Ok(())
+}
+
+#[test]
+#[serial]
+#[cfg(feature = "reader_tests")]
+fn gen2_custom() -> TestResult {
+    // Connect to reader
+    let mut reader = ST25RU3993::new().expect("failed to connect to reader");
+
+    // Set configuration
+    let gen2_cfg = Gen2Cfg::builder()
+        .build()?;
+    
+    // Apply configuration
+    reader.configure_gen2(&gen2_cfg)?;
+
+    // Tune reader
+    reader.tune_freqs(TuningAlgorithm::Exact)?;
+
+    // Run an inventory
+    let (_, tags) = reader.inventory().expect("failed to inventory tags");
+
+    // Select a tag
+    if tags.is_empty() { panic!("No tags found") }
+    reader.select_gen2(&tags[0].epc).expect("failed to select tag");
+
+    // Determine tag's allocation class
+    let allocation_class = tags[0].tid[0];
+    println!("Found tag {} with allocation class {:02X}", &tags[0].epc, allocation_class);
+
+    // Create custom command: GetUID for EM4325
+    let get_uid = Gen2CustomCommand {
+        command_code: 0xE000,
+        use_crc: true,
+        use_rn16: true,
+        expect_header: true,
+    };
+
+    // The response's length is dependant on the UID's length
+    // which is determined by allocation class
+    let uid_len = match allocation_class {
+        0xE0 => 64,
+        0xE3 => 80,
+        0xE2 => 96,
+        0x44 | 0x45 | 0x46 | 0x47 => 64,
+        _ => panic!("unknown allocation class")
+    };
+
+    // Get tag's UID
+    let uid = reader.custom_gen2(&get_uid, None, uid_len, None)?;
+    println!("Tag UID: {:02X?}", &uid[..uid.len() - 2]); // Last 2 bytes are RN16 code
 
     Ok(())
 }

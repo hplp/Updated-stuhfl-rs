@@ -644,6 +644,40 @@ impl ST25RU3993 {
     /// 
     /// This command allows you to write to a tag. Note that
     /// you should select a tag before writing.
+    /// 
+    /// # Example
+    /// 
+    /// ```no_run
+    /// # use std::error::Error;
+    /// # use libstuhfl::*;
+    /// # #[cfg(feature = "port_scanning")]
+    /// # fn main() -> Result<(), Box<dyn Error>> {
+    /// // Write to gen2 tag's User memory bank
+    /// 
+    /// let mut reader = ST25RU3993::new()?; // new requires port scanning feature
+    /// 
+    /// let cfg = Gen2Cfg::builder().build()?;
+    /// 
+    /// reader.configure_gen2(&cfg)?;
+    /// 
+    /// reader.tune_freqs(TuningAlgorithm::Exact)?;
+    /// 
+    /// let (_statistics, tags) = reader.inventory()?;
+    /// 
+    /// if tags.is_empty() { panic!("No tags found") }
+    ///
+    /// reader.select_gen2(&tags[0].epc)?;
+    /// 
+    /// let reply = reader.write_gen2(Gen2MemoryBank::User, 0x00, [0x55, 0x55], None)?;
+    /// 
+    /// println!("Tag reply: {}", reply);
+    ///
+    /// assert_eq!(reader.read_gen2(Gen2MemoryBank::User, 0x00, 2, None)?, [0x55, 0x55]);
+    /// # Ok(())
+    /// # }
+    /// # #[cfg(not(feature = "port_scanning"))]
+    /// # fn main() {}
+    /// ```
     pub fn write_gen2(&mut self, memory_bank: Gen2MemoryBank, word_ptr: u32, data: [u8; 2], password: Option<[u8; 4]>) -> Result<u8, Error> {
         // Make sure protocol is set up first
         if self.protocol.is_none() { return Err(Error::None) };
@@ -663,6 +697,146 @@ impl ST25RU3993 {
         unsafe{proc_err(ffi::Gen2_Write(&mut write_struct))?}
 
         Ok(write_struct.tagReply)
+    }
+
+    /// # Sending Custom & Proprietary Gen2 Commands
+    /// 
+    /// This command allows you to define and send custom Gen2 commands.
+    /// This requires first defining a [`Gen2CustomCommand`], then calculating
+    /// how many bits must be transmitted and recieved (see below). You can also
+    /// optionally send data inside the transmission packet. A password may also
+    /// be supplied for authentication with the tag.
+    /// 
+    /// ## Note for calculating packet lengths:
+    /// 
+    /// The length of the sending packet is handled completely automatically. This
+    /// value is calculated using the following formula:
+    /// 
+    /// command (16 bits) + data length (optional, variable) + CRC16 (optional) + RN16 (optional)
+    /// 
+    /// The length of the recieved packet already takes into account the header (optional),
+    /// CRC16 (optional) and RN16 (optional). It the value given to this function should
+    /// simply be the length of the command's *data* fields to be recieved.
+    /// 
+    /// ## Note on command codes:
+    /// 
+    /// While command codes *can* vary in length according to the standard, this
+    /// function assumes you are using a 16-bit long command code. This is valid for
+    /// any *custom* or *reserved* command according to the Gen2 standard. If you
+    /// need a different length, consider using the designated command or calling
+    /// the FFI directly.
+    /// 
+    /// ## Returns
+    /// 
+    /// On a successful command run, this command will return the data recieved from
+    /// the command. This does not include the header or CRC (if enabled), however it
+    /// WILL include the RN16 handle (if enabled). The RN16 can safely be disregarded.
+    /// 
+    /// # Example
+    /// 
+    /// ```no_run
+    /// # use std::error::Error;
+    /// # use libstuhfl::*;
+    /// # #[cfg(feature = "port_scanning")]
+    /// # fn main() -> Result<(), Box<dyn Error>> {
+    /// // Send Custom Gen2 Command (GetUID for EM4325)
+    /// 
+    /// let mut reader = ST25RU3993::new()?; // new requires port scanning feature
+    /// 
+    /// let cfg = Gen2Cfg::builder().build()?;
+    /// 
+    /// reader.configure_gen2(&cfg)?;
+    /// 
+    /// reader.tune_freqs(TuningAlgorithm::Exact)?;
+    /// 
+    /// let (_statistics, tags) = reader.inventory()?;
+    /// 
+    /// if tags.is_empty() { panic!("No tags found") }
+    ///
+    /// reader.select_gen2(&tags[0].epc)?;
+    ///
+    /// let allocation_class = tags[0].tid[0];
+    /// println!("Found tag {} with allocation class {:02X}", &tags[0].epc, allocation_class);
+    ///
+    /// // Create custom command: GetUID for EM4325
+    /// let get_uid = Gen2CustomCommand {
+    ///     command_code: 0xE000,
+    ///     use_crc: true,
+    ///     use_rn16: true,
+    ///     expect_header: true,
+    /// };
+    /// 
+    /// let uid_len = match allocation_class {
+    ///     0xE0 => 64,
+    ///     0xE3 => 80,
+    ///     0xE2 => 96,
+    ///     0x44 | 0x45 | 0x46 | 0x47 => 64,
+    ///     _ => panic!("unknown allocation class")
+    /// };
+    ///
+    /// let uid = reader.custom_gen2(&get_uid, None, uid_len, None)?;
+    /// println!("Tag UID: {:02X?}", &uid[..uid.len() - 2]); // Last 2 bytes are RN16 code
+    /// # Ok(())
+    /// # }
+    /// # #[cfg(not(feature = "port_scanning"))]
+    /// # fn main() {}
+    /// ```
+    pub fn custom_gen2(&mut self, command: &Gen2CustomCommand, data_to_send: Option<Gen2CustomCommandData>, bits_to_recieve: u16, password: Option<[u8; 4]>) -> Result<Vec<u8>, Error> {
+        // Make sure protocol is set up first
+        if self.protocol.is_none() { return Err(Error::None) };
+
+        // Determine password
+        let pwd = password.unwrap_or([0; 4]);
+
+        // Determine command to send
+        let cmd = match (command.use_crc, command.expect_header) {
+            (true, false) => 0x90, // transmission with CRC
+            (true, true)  => ffi::STUHFL_D_GEN2_GENERIC_CMD_CRC_EXPECT_HEAD as u8, // transmission with CRC, expecting header bit
+            (false, _)    => 0x92, // transmission without CRC
+        };
+
+        // Generate data to send
+        #[allow(non_snake_case)]
+        let mut sndData = [0; 64];
+
+        // Copy command code
+        let cmd_code = command.command_code.to_be_bytes();
+        sndData[0] = cmd_code[0];
+        sndData[1] = cmd_code[1];
+
+        // Determine length of data to send
+        #[allow(non_snake_case)]
+        let mut sndDataBitLength = 16;
+
+        // Copy data to be sent
+        if let Some(data) = data_to_send {
+            for (i, byte) in data.bytes.iter().enumerate() {
+                sndData[i + 2] = *byte;
+            }
+            sndDataBitLength += data.num_bits;
+        }
+
+        // Account for RN16 in response packet
+        #[allow(non_snake_case)]
+        let expectedRcvDataBitLength = bits_to_recieve + if command.use_rn16 { 16 } else { 0 };
+
+        // Create command parameter struct
+        let mut generic_cmd_struct = ffi::STUHFL_T_Gen2_GenericCmd {
+            pwd,
+            cmd,
+            noResponseTime: 0xFF, // 20 ms
+            expectedRcvDataBitLength,
+            sndDataBitLength,
+            appendRN16: command.use_rn16,
+            sndData,
+            rcvDataLength: 0, // this gets populated by firmware
+            rcvData: [0; 128] // this also gets populated by firmware
+        };
+
+        // Send command
+        unsafe{proc_err(ffi::Gen2_GenericCmd(&mut generic_cmd_struct))?};
+
+        Ok(Vec::from(&generic_cmd_struct.rcvData[..generic_cmd_struct.rcvDataLength as usize]))
     }
 }
 
