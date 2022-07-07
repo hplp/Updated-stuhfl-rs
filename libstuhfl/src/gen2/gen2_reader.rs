@@ -1,0 +1,349 @@
+use crate::data_types::*;
+use crate::error::Error;
+use crate::gen2::*;
+use crate::helpers::proc_err;
+use std::sync::Mutex;
+
+pub struct Gen2Reader {
+    is_tuned: bool,
+}
+
+impl Gen2Reader {
+    pub(crate) unsafe fn new() -> Self {
+        Self { is_tuned: false }
+    }
+
+    pub fn custom_cmd(
+        &mut self,
+        command: &Gen2CustomCommand,
+        data_to_send: Option<Gen2CustomCommandData>,
+        bits_to_recieve: u16,
+        password: Option<[u8; 4]>,
+    ) -> Result<Vec<u8>> {
+        // Determine password
+        let pwd = password.unwrap_or([0; 4]);
+
+        // Determine command to send
+        let cmd = match (command.use_crc, command.expect_header) {
+            // transmission with CRC
+            (true, false) => ffi::STUHFL_D_GEN2_GENERIC_CMD_CRC as u8,
+            // transmission with CRC, expecting header bit
+            (true, true) => ffi::STUHFL_D_GEN2_GENERIC_CMD_CRC_EXPECT_HEAD as u8,
+            // transmission without CRC
+            (false, _) => ffi::STUHFL_D_GEN2_GENERIC_CMD_NO_CRC as u8,
+        };
+
+        // Generate data to send
+        #[allow(non_snake_case)]
+        let mut sndData = [0; 64];
+
+        // Copy command code
+        let cmd_code = command.command_code.to_be_bytes();
+        sndData[0] = cmd_code[0];
+        sndData[1] = cmd_code[1];
+
+        // Determine length of data to send
+        #[allow(non_snake_case)]
+        let mut sndDataBitLength = 16;
+
+        // Copy data to be sent
+        if let Some(data) = data_to_send {
+            for (i, byte) in data.bytes.iter().enumerate() {
+                sndData[i + 2] = *byte;
+            }
+            sndDataBitLength += data.num_bits;
+        }
+
+        // Account for RN16 in response packet
+        #[allow(non_snake_case)]
+        let expectedRcvDataBitLength = bits_to_recieve + if command.use_rn16 { 16 } else { 0 };
+
+        // Create command parameter struct
+        let mut generic_cmd_struct = ffi::STUHFL_T_Gen2_GenericCmd {
+            pwd,
+            cmd,
+            noResponseTime: 0xFF, // 20 ms
+            expectedRcvDataBitLength,
+            sndDataBitLength,
+            appendRN16: command.use_rn16,
+            sndData,
+            rcvDataLength: 0,  // this gets populated by firmware
+            rcvData: [0; 128], // this also gets populated by firmware
+        };
+
+        // Send command
+        unsafe { proc_err(ffi::Gen2_GenericCmd(&mut generic_cmd_struct))? };
+
+        Ok(Vec::from(
+            &generic_cmd_struct.rcvData[..generic_cmd_struct.rcvDataLength as usize],
+        ))
+    }
+}
+
+lazy_static! {
+    /// CB_HOLDER contains a reference to a user-specified callback function
+    /// used for multithreaded synchronous inventory_runner execution
+
+    // Note: In rust 1.63 this will no longer require the lazy_static crate.
+    static ref CB_HOLDER: Mutex<Option<Box<CallbackFn>>> = Mutex::new(None);
+}
+
+impl ProtocolReader for Gen2Reader {
+    fn tune(&mut self, algo: TuningAlgorithm) -> Result<()> {
+        // None does nothing
+        if algo == TuningAlgorithm::None {
+            return Ok(());
+        }
+
+        // Get the current reader settings, we need to know which antenna is in use
+        let mut tx_rx_cfg = ffi::STUHFL_T_ST25RU3993_TxRxCfg::default();
+        unsafe { proc_err(ffi::Get_TxRxCfg(&mut tx_rx_cfg))? }
+
+        // Create a tune configuration using the antenna & algorithm
+        let mut tune_cfg = ffi::STUHFL_T_ST25RU3993_TuneCfg {
+            antenna: tx_rx_cfg.usedAntenna,
+            algorithm: algo as u8,
+            tuneAll: true,
+            ..Default::default()
+        };
+
+        // Tune the reader using the configuration
+        unsafe { proc_err(ffi::TuneChannel(&mut tune_cfg))? }
+
+        // Mark tuned status
+        self.is_tuned = true;
+
+        Ok(())
+    }
+
+    fn inventory_once(&self) -> Result<(InventoryStatistics, Vec<InventoryTag>)> {
+        // Require tuning
+        if !self.is_tuned {
+            return Err(Error::Generic);
+        }
+
+        // create tag data storage location
+        let mut tag_data: [ffi::STUHFL_T_InventoryTag; ffi::STUHFL_D_MAX_TAG_LIST_SIZE as usize] =
+            unsafe { std::mem::zeroed() };
+
+        // create tag data storage container
+        let mut inv_data = ffi::STUHFL_T_InventoryData {
+            tagList: &mut tag_data as _,
+            tagListSizeMax: tag_data.len() as u16,
+            ..Default::default()
+        };
+
+        // customize inventory options
+        let mut inv_option = ffi::STUHFL_T_InventoryOption {
+            options: ffi::STUHFL_D_INVENTORYREPORT_OPTION_NONE as u8,
+            ..Default::default()
+        };
+
+        // run the inventory
+        unsafe { proc_err(ffi::Gen2_Inventory(&mut inv_option, &mut inv_data))? }
+
+        // save data into iterator
+        let tags = tag_data[..inv_data.statistics.tagCnt as usize]
+            .iter()
+            .map(|tag| InventoryTag::from(*tag))
+            .collect();
+
+        let statistics = InventoryStatistics::from(inv_data.statistics);
+
+        Ok((statistics, tags))
+    }
+
+    fn inventory(&mut self, num_rounds: u32, cb: Box<CallbackFn>) -> Result<InventoryStatistics> {
+        // Require tuning
+        if !self.is_tuned {
+            return Err(Error::Generic);
+        }
+
+        if num_rounds == 0 {
+            eprintln!("Error: num_rounds = 0 not yet implemented!");
+            return Err(Error::None);
+        }
+
+        // create tag data storage location
+        let mut tag_data: [ffi::STUHFL_T_InventoryTag; ffi::STUHFL_D_MAX_TAG_LIST_SIZE as usize] =
+            unsafe { std::mem::zeroed() };
+
+        // create tag data storage container
+        let mut inv_data = ffi::STUHFL_T_InventoryData {
+            tagList: &mut tag_data as _,
+            tagListSizeMax: tag_data.len() as u16,
+            ..Default::default()
+        };
+
+        // customize inventory options
+        let mut inv_option = ffi::STUHFL_T_InventoryOption {
+            options: ffi::STUHFL_D_INVENTORYREPORT_OPTION_NONE as u8,
+            roundCnt: num_rounds,
+            ..Default::default()
+        };
+
+        // Save callback function
+        let mut cb_holder = CB_HOLDER.lock().unwrap();
+        *cb_holder = Some(cb);
+        drop(cb_holder);
+
+        // Call inventory (blocking)
+        let result = unsafe {
+            proc_err(ffi::Inventory_RunnerStart(
+                &mut inv_option,
+                Some(cycle_cb),
+                None,
+                &mut inv_data,
+            ))
+        };
+
+        let cb_success = if CB_HOLDER.is_poisoned() {
+            Err(Error::Generic)
+        } else {
+            Ok(())
+        };
+
+        // Delete callback function
+        let mut guard = match CB_HOLDER.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => poisoned.into_inner(),
+        };
+        *guard = None;
+
+        // Return any errors due to inventory failing
+        result?;
+
+        // Return any errors due to poisoning
+        cb_success?;
+
+        let statistics = InventoryStatistics::from(inv_data.statistics);
+
+        Ok(statistics)
+    }
+
+    fn select(&mut self, epc: &Epc) -> Result<()> {
+        // Require tuning
+        if !self.is_tuned {
+            return Err(Error::Generic);
+        }
+
+        let mut mask = [0; 32];
+
+        for (i, x) in epc.id[..std::cmp::min(32, epc.id.len())].iter().enumerate() {
+            mask[i] = *x;
+        }
+
+        let mut sel = ffi::STUHFL_T_Gen2_Select {
+            mode: ffi::STUHFL_D_GEN2_SELECT_MODE_CLEAR_AND_ADD as u8,
+            target: ffi::STUHFL_D_GEN2_TARGET_SL as u8,
+            action: 0,
+            memoryBank: ffi::STUHFL_D_GEN2_MEMORY_BANK_EPC as u8,
+            maskBitPointer: 0x20,
+            maskBitLength: if epc.id.len() >= ffi::STUHFL_D_GEN2_MAX_SELECT_MASK_LENGTH as usize {
+                0xFF
+            } else {
+                epc.id.len() as u8 * 8
+            },
+            mask,
+            truncation: 0,
+        };
+
+        unsafe { proc_err(ffi::Gen2_Select(&mut sel))? }
+
+        Ok(())
+    }
+
+    fn read(
+        &mut self,
+        bank: MemoryBank,
+        word_address: u32,
+        num_bytes: u8,
+        password: Option<Password>,
+    ) -> Result<Vec<u8>> {
+        // Require tuning
+        if !self.is_tuned {
+            return Err(Error::Generic);
+        }
+
+        let mut read_struct = ffi::STUHFL_T_Read {
+            wordPtr: word_address,
+            memoryBank: bank as u8,
+            numBytesToRead: num_bytes,
+            pwd: if let Some(pwd) = password {
+                pwd.into_inner()
+            } else {
+                [0; 4]
+            },
+            numReadBytes: 0,
+            data: [0; 64],
+        };
+
+        // Call read
+        unsafe { proc_err(ffi::Gen2_Read(&mut read_struct))? }
+
+        // Create vector from read bytes
+        let result = Vec::from(&read_struct.data[..read_struct.numReadBytes as usize]);
+
+        // Return result
+        Ok(result)
+    }
+
+    fn write(
+        &mut self,
+        bank: MemoryBank,
+        word_adddress: u32,
+        data: [u8; 2],
+        password: Option<Password>,
+    ) -> Result<()> {
+        // Require tuning
+        if !self.is_tuned {
+            return Err(Error::Generic);
+        }
+
+        let mut write_struct = ffi::STUHFL_T_Write {
+            wordPtr: word_adddress,
+            memoryBank: bank as u8,
+            pwd: if let Some(pwd) = password {
+                pwd.into_inner()
+            } else {
+                [0; 4]
+            },
+            data,
+            tagReply: 0,
+        };
+
+        unsafe { proc_err(ffi::Gen2_Write(&mut write_struct))? }
+
+        Ok(())
+    }
+}
+
+extern "C" fn cycle_cb(data: *mut ffi::STUHFL_T_InventoryData) -> ffi::STUHFL_T_RET_CODE {
+    let cb_wrapper = std::panic::catch_unwind(|| {
+        // Get user defined callback function
+        let cb_holder = CB_HOLDER.lock().unwrap();
+
+        // Access callback function
+        let cb_fn = cb_holder.as_ref().unwrap();
+
+        // Access data from behind pointer
+        let data = unsafe { &*data };
+
+        // Copy every scanned tag into the vector
+        for i in 0..data.tagListSize {
+            // Index pointer to array and convert it to InventoryTag
+            let tag = InventoryTag::from(unsafe { *data.tagList.offset(i as isize) });
+            // Let caller handle values
+            cb_fn(tag);
+        }
+    });
+
+    if cb_wrapper.is_err() {
+        // callback unwrapped, mutex now poisoned
+        unsafe { ffi::Inventory_RunnerStop() };
+        Error::Generic as ffi::STUHFL_T_RET_CODE
+    } else {
+        // callback finished
+        Error::None as ffi::STUHFL_T_RET_CODE
+    }
+}

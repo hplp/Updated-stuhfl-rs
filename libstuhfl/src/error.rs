@@ -1,4 +1,4 @@
-use super::*;
+use std::fmt;
 
 enum_from_primitive! {
     #[derive(Debug, Copy, Clone, PartialEq)]
@@ -7,7 +7,7 @@ enum_from_primitive! {
     /// will be returned from recoverable warnings, usually due to
     /// improper usage. (Successfull `None` values are not returned
     /// as errors)
-    /// 
+    ///
     /// The following errors are used within the application:
     ///  - [`Error::Generic`]
     ///  - [`Error::None`]
@@ -19,7 +19,7 @@ enum_from_primitive! {
     ///  - [`Error::NoMsg`]
     ///  - [`Error::Param`]
     ///  - [`Error::Proto`]
-    /// 
+    ///
     /// The following errors are primarily raised by the ST25RU3993 itself:
     ///  - [`Error::ChipNoResp`]
     ///  - [`Error::ChipHeader`]
@@ -27,13 +27,13 @@ enum_from_primitive! {
     ///  - [`Error::ChipRxCount`]
     ///  - [`Error::ChipFifo`]
     ///  - [`Error::ChipColl`]
-    /// 
+    ///
     /// The following are upper level protocol errors for Gen2:
     ///  - [`Error::Gen2Select`]
     ///  - [`Error::Gen2Access`]
     ///  - [`Error::Gen2ReqRn`]
     ///  - [`Error::Gen2ChannelTimeout`]
-    /// 
+    ///
     /// The following are Gen2 V2 Errors:
     ///  - [`Error::Gen2Other`]
     ///  - [`Error::Gen2NotSupported`]
@@ -46,7 +46,7 @@ enum_from_primitive! {
     ///  - [`Error::Gen2SecurityTimeout`]
     ///  - [`Error::Gen2PowerShortage`]
     ///  - [`Error::Gen2Nonspecific`]
-    /// 
+    ///
     /// The following are upper level protocol errors for GB-29768:
     ///  - [`Error::Gb29768PowerShortage`]
     ///  - [`Error::Gb29768PermissionError`]
@@ -57,14 +57,14 @@ enum_from_primitive! {
     ///  - [`Error::Gb29768AccessError`]
     ///  - [`Error::Gb29768AccessTimeout`]
     ///  - [`Error::Gb29768Other`]
-    /// 
+    ///
     /// The following are upper level protocol erros for ISO-6b:
     ///  - [`Error::Iso6bNoTag`]
     ///  - [`Error::Iso6bIRQ`]
     ///  - [`Error::Iso6bRegFIFO`]
     ///  - [`Error::Iso6bOther`]
     ///  - [`Error::Iso6bAccessTimeout`]
-    /// 
+    ///
     pub enum Error {
         /// Generic errors
         Generic = ffi::STUHFL_ERR_GENERIC as u32,
@@ -166,56 +166,59 @@ enum_from_primitive! {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} Error",
-        match *self {
-            Error::Generic => "Generic",
-            Error::None => "None",
-            Error::NoMem => "No Memory",
-            Error::Busy => "Busy",
-            Error::GeneralIo => "General IO",
-            Error::Timeout => "Timeout",
-            Error::Request => "Request",
-            Error::NoMsg => "No Message",
-            Error::Param => "Parameter",
-            Error::Proto => "Protocol",
-            Error::ChipNoResp => "No Response",
-            Error::ChipHeader => "Header",
-            Error::ChipPreamble => "Preamble",
-            Error::ChipRxCount => "Chip Rx Count",
-            Error::ChipCrc => "Chip CRC",
-            Error::ChipFifo => "Chip FIFO",
-            Error::ChipColl => "Chip COLL",
-            Error::ReflectedPower => "Reflected Power",
-            Error::Gen2Select => "Gen2 Select",
-            Error::Gen2Access => "Gen2 Access",
-            Error::Gen2ReqRn => "Gen2 Request RN",
-            Error::Gen2ChannelTimeout => "Gen2 Channel Timeout",
-            Error::Gen2Other => "Gen2 Other",
-            Error::Gen2NotSupported => "Gen2 Not Supported",
-            Error::Gen2Privileges => "Gen2 Privileges",
-            Error::Gen2MemOverRun => "Gen2 Memory Overrun",
-            Error::Gen2MemLocked => "Gen2 Memory Locked",
-            Error::Gen2Crypto => "Gen2 Crypto",
-            Error::Gen2Encapsulation => "Gen2 Encapsulation",
-            Error::Gen2RespBufOverflow => "Gen2 Response Buffer Overflow",
-            Error::Gen2SecurityTimeout => "Gen2 Security Timeout",
-            Error::Gen2PowerShortage => "Gen2 Power Shortage",
-            Error::Gen2Nonspecific => "Gen2 Nonspecific",
-            Error::Gb29768PowerShortage => "Gb29768 Power Shortage",
-            Error::Gb29768PermissionError => "Gb29768 Permission Error",
-            Error::Gb29768StorageOverflow => "Gb29768 Storage Overflow",
-            Error::Gb29768StorageLocked => "Gb29768 Storage Locked",
-            Error::Gb29768PasswordError => "Gb29768 Password Error",
-            Error::Gb29768AuthError => "Gb29768 Authentication Error",
-            Error::Gb29768AccessError => "Gb29768 Access Error",
-            Error::Gb29768AccessTimeout => "Gb29768 Access Timeout",
-            Error::Gb29768Other => "Gb29768 Other",
-            Error::Iso6bNoTag => "Iso6b No Tag",
-            Error::Iso6bIRQ => "Iso6b IRQ",
-            Error::Iso6bRegFIFO => "Iso6b Register FIFO",
-            Error::Iso6bOther => "Iso6b Other",
-            Error::Iso6bAccessTimeout => "Iso6b Access Timeout"
-        })
+        write!(
+            f,
+            "{} Error",
+            match *self {
+                Error::Generic => "Generic",
+                Error::None => "None",
+                Error::NoMem => "No Memory",
+                Error::Busy => "Busy",
+                Error::GeneralIo => "General IO",
+                Error::Timeout => "Timeout",
+                Error::Request => "Request",
+                Error::NoMsg => "No Message",
+                Error::Param => "Parameter",
+                Error::Proto => "Protocol",
+                Error::ChipNoResp => "No Response",
+                Error::ChipHeader => "Header",
+                Error::ChipPreamble => "Preamble",
+                Error::ChipRxCount => "Chip Rx Count",
+                Error::ChipCrc => "Chip CRC",
+                Error::ChipFifo => "Chip FIFO",
+                Error::ChipColl => "Chip COLL",
+                Error::ReflectedPower => "Reflected Power",
+                Error::Gen2Select => "Gen2 Select",
+                Error::Gen2Access => "Gen2 Access",
+                Error::Gen2ReqRn => "Gen2 Request RN",
+                Error::Gen2ChannelTimeout => "Gen2 Channel Timeout",
+                Error::Gen2Other => "Gen2 Other",
+                Error::Gen2NotSupported => "Gen2 Not Supported",
+                Error::Gen2Privileges => "Gen2 Privileges",
+                Error::Gen2MemOverRun => "Gen2 Memory Overrun",
+                Error::Gen2MemLocked => "Gen2 Memory Locked",
+                Error::Gen2Crypto => "Gen2 Crypto",
+                Error::Gen2Encapsulation => "Gen2 Encapsulation",
+                Error::Gen2RespBufOverflow => "Gen2 Response Buffer Overflow",
+                Error::Gen2SecurityTimeout => "Gen2 Security Timeout",
+                Error::Gen2PowerShortage => "Gen2 Power Shortage",
+                Error::Gen2Nonspecific => "Gen2 Nonspecific",
+                Error::Gb29768PowerShortage => "Gb29768 Power Shortage",
+                Error::Gb29768PermissionError => "Gb29768 Permission Error",
+                Error::Gb29768StorageOverflow => "Gb29768 Storage Overflow",
+                Error::Gb29768StorageLocked => "Gb29768 Storage Locked",
+                Error::Gb29768PasswordError => "Gb29768 Password Error",
+                Error::Gb29768AuthError => "Gb29768 Authentication Error",
+                Error::Gb29768AccessError => "Gb29768 Access Error",
+                Error::Gb29768AccessTimeout => "Gb29768 Access Timeout",
+                Error::Gb29768Other => "Gb29768 Other",
+                Error::Iso6bNoTag => "Iso6b No Tag",
+                Error::Iso6bIRQ => "Iso6b IRQ",
+                Error::Iso6bRegFIFO => "Iso6b Register FIFO",
+                Error::Iso6bOther => "Iso6b Other",
+                Error::Iso6bAccessTimeout => "Iso6b Access Timeout",
+            }
+        )
     }
 }
 
@@ -224,13 +227,5 @@ impl std::error::Error for Error {}
 impl From<Error> for String {
     fn from(e: Error) -> String {
         format!["{}", e]
-    }
-}
-
-pub(crate) fn proc_err (code: ffi::STUHFL_T_RET_CODE) -> Result<(), Error> {
-    if code == ffi::STUHFL_ERR_NONE {
-        Ok(())
-    } else {
-        Err(Error::from_u32(code).unwrap())
     }
 }
