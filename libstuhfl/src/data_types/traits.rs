@@ -1,4 +1,5 @@
 use super::{enums::*, structs::*, types::*};
+use crate::error::Result;
 use crate::gen2;
 use crate::helpers::proc_err;
 use std::mem::zeroed;
@@ -18,43 +19,30 @@ where
     }
 }
 
-/// Marker trait for reader types. Used exclusively in blanket
-/// implementation of [`BasicReader`]
-pub unsafe trait GenericReader {}
-
-/// Basic RFID Reader functionality.
-pub unsafe trait BasicReader {
-    fn get_version(&self) -> Result<Version>;
-    fn configure_gen2(self, configuration: &gen2::Gen2Cfg) -> Result<gen2::Gen2Reader>;
-}
-
-pub trait ProtocolReader {
-    fn tune(&mut self, algo: TuningAlgorithm) -> Result<()>;
-    fn inventory_once(&self) -> Result<(InventoryStatistics, Vec<InventoryTag>)>;
-    fn inventory(&mut self, num_rounds: u32, cb: Box<CallbackFn>) -> Result<InventoryStatistics>;
-    fn select(&mut self, epc: &Epc) -> Result<()>;
-    fn read(
-        &mut self,
-        bank: MemoryBank,
-        word_address: u32,
-        num_bytes: u8,
-        password: Option<Password>,
-    ) -> Result<Vec<u8>>;
-    fn write(
-        &mut self,
-        bank: MemoryBank,
-        word_adddress: u32,
-        data: [u8; 2],
-        password: Option<Password>,
-    ) -> Result<()>;
-}
-
-unsafe impl<T> GenericReader for T where T: ProtocolReader {}
-
-unsafe impl<T> BasicReader for T
-where
-    T: Sized + GenericReader,
-{
+/// Basic RFID Reader functionality. Includes commands that don't
+/// depend on any particular protocol. See [`ProtocolReader`] for
+/// commands that depend on the protocol.
+pub unsafe trait BasicReader: Sized {
+    /// # Getting the reader version
+    ///
+    /// This function returns a [`Version`] instance with the reader's
+    /// firmware and hardware information. Note: the version is normally
+    /// automatically checked for compatibility during reader construction.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use libstuhfl::prelude::*;
+    /// # fn main() -> core::result::Result<(), Box<dyn std::error::Error>> {
+    /// # let mut reader = unsafe{DummyReader::new()};
+    ///
+    /// let version = reader.get_version().expect("Failed to get reader version");
+    ///
+    /// println!("Reader version: {}", &version);
+    ///
+    /// # Ok(())
+    /// # }
+    /// ```
     fn get_version(&self) -> Result<Version> {
         // Create structs to be filled by function
         let mut sw_ver: ffi::STUHFL_T_Version = unsafe { zeroed() };
@@ -91,6 +79,31 @@ where
         })
     }
 
+    /// # Configuring reader
+    ///
+    /// This function configures the reader for use of the Gen2 protocol.
+    /// See [`Gen2Cfg`] for details. Note: all settings have valid defaults,
+    /// however most can be overrided. For usage see [`Gen2Reader`] and
+    /// [`ProtocolReader`].
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use libstuhfl::prelude::*;
+    /// use libstuhfl::gen2::*;
+    /// # fn main() -> core::result::Result<(), Box<dyn std::error::Error>> {
+    /// # let mut reader = unsafe{DummyReader::new()};
+    ///
+    /// let gen2_cfg = Gen2Cfg::builder()
+    ///     .build()?;
+    ///
+    /// let gen2_reader = reader
+    ///     .configure_gen2(&gen2_cfg)
+    ///     .expect("Failed to configure reader");
+    ///
+    /// # Ok(())
+    /// # }
+    /// ```
     fn configure_gen2(self, configuration: &gen2::Gen2Cfg) -> Result<gen2::Gen2Reader> {
         // Set up antenna configuration
         let mut tx_rx_cfg = configuration.tx_rx_cfg.as_ffi();
@@ -125,4 +138,230 @@ where
 
         Ok(unsafe { gen2::Gen2Reader::new() })
     }
+
+    /// Tests whether a connected reader is compatible with the
+    /// middle-ware library. Note that this should be *already*
+    /// called by the constructor, so there is no need for
+    /// users to run this method.
+    fn test_compatible(&self) -> Result<bool> {
+        // Defined in firmware
+        const LOWEST_SW_VER: VersionNum = VersionNum {
+            major: 3,
+            minor: 1,
+            micro: 0,
+            nano: 0,
+        };
+        // Defined in firmware
+        const LOWEST_HW_VER: VersionNum = VersionNum {
+            major: 1,
+            minor: 1,
+            micro: 0,
+            nano: 0,
+        };
+
+        // Determine board version
+        let ver = self.get_version()?;
+
+        // Check minimum version satisfied
+        Ok(ver.sw_ver >= LOWEST_SW_VER && ver.hw_ver >= LOWEST_HW_VER)
+    }
+}
+
+/// Protocol-Specific reader commands. These include any commands that require
+/// the reader to be configured to use an RFID protocol. See [`BasicReader`]
+/// for more.
+pub unsafe trait ProtocolReader {
+    /// # Tuning reader
+    ///
+    /// Tune the reader using the specified tuning algorithm.
+    /// See [`TuningAlgorithm`] for details. Note: This must
+    /// be done before issuing other commands. If you would
+    /// like to intentionally use the reader untuned, use
+    /// [`TuningAlgorithm::None`].
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use libstuhfl::prelude::*;
+    /// # fn main() -> core::result::Result<(), Box<dyn std::error::Error>> {
+    /// # let mut reader = unsafe{DummyReader::new()};
+    ///
+    /// reader.tune(TuningAlgorithm::Exact)?;
+    ///
+    /// # Ok(())
+    /// # }
+    /// ```
+    fn tune(&mut self, algo: TuningAlgorithm) -> Result<()>;
+
+    /// # Inventorying tags
+    ///
+    /// There are two ways to inventory tags, using this command or
+    /// the [`Self::invenotry()`] command. This command will only
+    /// run a single round and return a vector of tags. Running this
+    /// in a loop will cause a huge amount of unecessary memory allocations
+    /// and copies, so it is recommended to use [`Self::inventory()`]
+    /// if several rounds are needed.
+    ///
+    /// # Example
+    /// ```
+    /// use libstuhfl::prelude::*;
+    /// # fn main() -> core::result::Result<(), Box<dyn std::error::Error>> {
+    /// # let mut reader = unsafe{DummyReader::new()};
+    ///
+    /// reader.tune(TuningAlgorithm::Exact)?;
+    /// let (stats, tags) = reader.inventory_once()?;
+    ///
+    /// println!("Inventory Statistics:");
+    /// println!("{}", &stats);
+    ///
+    /// println!("Tags found:");
+    /// for tag in &tags {
+    ///     println!("{}", tag.epc);
+    /// }
+    ///
+    /// # Ok(())}
+    fn inventory_once(&self) -> Result<(InventoryStatistics, Vec<InventoryTag>)>;
+
+    /// # Inventorying tags (threaded)
+    ///
+    /// There are two ways to inventory tags, using this command or
+    /// the [`Self::inventory_once()`] command. This command will run `num_rounds`
+    /// inventory rounds, and for each round where tags are discovered the
+    /// `data_cb` will be called. Note: this is a blocking call.
+    ///
+    /// # Example
+    /// ```
+    /// use std::sync::{Arc, Mutex};
+    /// use libstuhfl::prelude::*;
+    /// # fn main() -> core::result::Result<(), Box<dyn std::error::Error>> {
+    /// # let mut reader = unsafe{DummyReader::new()};
+    ///
+    /// reader.tune(TuningAlgorithm::Exact)?;
+    ///
+    /// // create thread-safe shared vector of tags
+    /// let tags = Arc::new(Mutex::new(Vec::new()));
+    /// let tags2 = Arc::clone(&tags);
+    ///
+    /// // create callback function
+    /// let callback = move |tag| {
+    ///     let mut tags = tags2.lock().unwrap();
+    ///     tags.push(tag);
+    /// };
+    ///
+    /// let stats = reader.inventory(20, Box::new(callback))?;
+    ///
+    /// println!("Inventory Statistics:");
+    /// println!("{}", &stats);
+    ///
+    /// let tags = tags.lock().unwrap();
+    ///
+    /// println!("Tags found:");
+    /// for tag in &*tags {
+    ///     println!("{}", tag.epc);
+    /// }
+    ///
+    /// # Ok(())}
+    /// ```
+    ///
+    /// # Known Issues
+    ///
+    /// Currently, there is no way to prematurely stop the inventory.
+    /// This would ideally happen automatically when the callback panics,
+    /// or allow for the callback to control the end of the inventory
+    /// in general.
+    ///
+    /// # Panics
+    ///
+    /// Any panics generated in `data_cb` will be caught by
+    /// a wrapper callback. This function should never panic.
+    fn inventory(&mut self, num_rounds: u32, cb: Box<CallbackFn>) -> Result<InventoryStatistics>;
+
+    /// # Selecting a tag
+    ///
+    /// This function allows you to select an invdividual tag using its EPC number.
+    /// By doing so, access functions such as read can be safely used.
+    ///
+    /// # Example
+    /// ```
+    /// use libstuhfl::prelude::*;
+    /// # fn main() -> core::result::Result<(), Box<dyn std::error::Error>> {
+    /// # let mut reader = unsafe{DummyReader::new()};
+    ///
+    /// reader.tune(TuningAlgorithm::Exact)?;
+    /// let (_stats, tags) = reader.inventory_once()?;
+    ///
+    /// if tags.is_empty() { panic!("Tags list is empty") }
+    ///
+    /// reader.select(&tags[0].epc)?;
+    ///
+    /// # Ok(())
+    /// # }
+    /// ```
+    fn select(&mut self, epc: &Epc) -> Result<()>;
+
+    /// # Reading a tag
+    ///
+    /// This command allows a tag to be read. Note: be sure to
+    /// select a tag first, or the read order will be random.
+    ///
+    /// # Example
+    /// ```
+    /// use libstuhfl::prelude::*;
+    /// # fn main() -> core::result::Result<(), Box<dyn std::error::Error>> {
+    /// # let mut reader = unsafe{DummyReader::new()};
+    ///
+    /// reader.tune(TuningAlgorithm::Exact)?;
+    /// let (_stats, tags) = reader.inventory_once()?;
+    ///
+    /// if tags.is_empty() { panic!("Tags list is empty") }
+    ///
+    /// for tag in tags {
+    ///     println!("Found tag {}", &tag.epc);
+    ///     let epc = reader.read(MemoryBank::Epc, 0x02, 12, None)?;
+    ///     assert!(epc == tag.epc.get_id());
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    fn read(
+        &mut self,
+        bank: MemoryBank,
+        word_address: u32,
+        num_bytes: u8,
+        password: Option<Password>,
+    ) -> Result<Vec<u8>>;
+
+    /// # Writing to a tag
+    ///
+    /// This command allows you to write to a tag. Note that
+    /// you should select a tag before writing.
+    ///
+    /// # Example
+    /// ```
+    /// use libstuhfl::prelude::*;
+    /// # fn main() -> core::result::Result<(), Box<dyn std::error::Error>> {
+    /// # let mut reader = unsafe{DummyReader::new()};
+    ///
+    /// reader.tune(TuningAlgorithm::Exact)?;
+    /// let (_stats, tags) = reader.inventory_once()?;
+    ///
+    /// if tags.is_empty() { panic!("Tags list is empty") }
+    /// reader.select(&tags[0].epc)?;
+    ///
+    /// reader.write(MemoryBank::User, 0x00, [0x55, 0x55], None)?;
+    /// let bytes = reader.read(MemoryBank::User, 0x00, 2, None)?;
+    /// # let bytes = [0x55, 0x55];
+    ///
+    /// assert_eq!(bytes, [0x55, 0x55]);
+    ///
+    /// # Ok(())
+    /// # }
+    /// ```
+    fn write(
+        &mut self,
+        bank: MemoryBank,
+        word_adddress: u32,
+        data: [u8; 2],
+        password: Option<Password>,
+    ) -> Result<()>;
 }

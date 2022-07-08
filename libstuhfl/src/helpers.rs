@@ -1,5 +1,5 @@
 use crate::data_types::*;
-use crate::error::Error;
+use crate::error::{Error, Result};
 use enum_primitive::FromPrimitive;
 
 pub(crate) fn profile_to_item_list(profile: Profile) -> Vec<ChannelItem> {

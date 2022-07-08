@@ -1,9 +1,11 @@
 use crate::data_types::*;
-use crate::error::Error;
+use crate::error::{Error, Result};
 use crate::gen2::*;
 use crate::helpers::proc_err;
 use std::sync::Mutex;
 
+/// A reader compatible with the Gen2 standard.
+/// To instantiate this struct, see [`BasicReader::configure_gen2`].
 pub struct Gen2Reader {
     is_tuned: bool,
 }
@@ -13,6 +15,85 @@ impl Gen2Reader {
         Self { is_tuned: false }
     }
 
+    /// # Sending Custom & Proprietary Gen2 Commands
+    ///
+    /// This command allows you to define and send custom Gen2 commands.
+    /// This requires first defining a [`Gen2CustomCommand`], then calculating
+    /// how many bits must be transmitted and recieved (see below). You can also
+    /// optionally send data inside the transmission packet. A password may also
+    /// be supplied for authentication with the tag.
+    ///
+    /// ## Note for calculating packet lengths:
+    ///
+    /// The length of the sending packet is handled completely automatically. This
+    /// value is calculated using the following formula:
+    ///
+    /// command (16 bits) + data length (optional, variable) + CRC16 (optional) + RN16 (optional)
+    ///
+    /// The length of the recieved packet already takes into account the header (optional),
+    /// CRC16 (optional) and RN16 (optional). It the value given to this function should
+    /// simply be the length of the command's *data* fields to be recieved.
+    ///
+    /// ## Note on command codes:
+    ///
+    /// While command codes *can* vary in length according to the standard, this
+    /// function assumes you are using a 16-bit long command code. This is valid for
+    /// any *custom* or *reserved* command according to the Gen2 standard. If you
+    /// need a different length, consider using the designated command or calling
+    /// the FFI directly.
+    ///
+    /// ## Returns
+    ///
+    /// On a successful command run, this command will return the data recieved from
+    /// the command. This does not include the header or CRC (if enabled), however it
+    /// WILL include the RN16 handle (if enabled). The RN16 can safely be disregarded.
+    ///
+    /// # Example
+    /// ```no_run
+    /// use libstuhfl::prelude::*;
+    /// use libstuhfl::gen2::*;
+    /// # fn main() -> core::result::Result<(), Box<dyn std::error::Error>> {
+    ///
+    /// let mut reader = Reader::autoconnect()?;
+    ///
+    /// let gen2_cfg = Gen2Cfg::builder()
+    ///     .build()?;
+    ///
+    /// let mut reader = reader.configure_gen2(&gen2_cfg)?;
+    ///
+    /// reader.tune(TuningAlgorithm::Exact)?;
+    ///
+    /// let (_stats, tags) = reader.inventory_once()?;
+    ///
+    /// if tags.is_empty() { panic!("No tags found") }
+    ///
+    /// reader.select(&tags[0].epc)?;
+    ///
+    /// let allocation_class = tags[0].tid[0];
+    /// println!("Found tag {} with allocation class {:02X}", &tags[0].epc, allocation_class);
+    ///
+    /// // Create custom command: GetUID for EM4325
+    /// let get_uid = Gen2CustomCommand {
+    ///     command_code: 0xE000,
+    ///     use_crc: true,
+    ///     use_rn16: true,
+    ///     expect_header: true,
+    /// };
+    ///
+    /// let uid_len = match allocation_class {
+    ///     0xE0 => 64,
+    ///     0xE3 => 80,
+    ///     0xE2 => 96,
+    ///     0x44 | 0x45 | 0x46 | 0x47 => 64,
+    ///     _ => panic!("unknown allocation class")
+    /// };
+    ///
+    /// let uid = reader.custom_cmd(&get_uid, None, uid_len, None)?;
+    /// println!("Tag UID: {:02X?}", &uid[..uid.len() - 2]); // Last 2 bytes are RN16 code
+    ///
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn custom_cmd(
         &mut self,
         command: &Gen2CustomCommand,
@@ -88,7 +169,9 @@ lazy_static! {
     static ref CB_HOLDER: Mutex<Option<Box<CallbackFn>>> = Mutex::new(None);
 }
 
-impl ProtocolReader for Gen2Reader {
+unsafe impl BasicReader for Gen2Reader {}
+
+unsafe impl ProtocolReader for Gen2Reader {
     fn tune(&mut self, algo: TuningAlgorithm) -> Result<()> {
         // None does nothing
         if algo == TuningAlgorithm::None {

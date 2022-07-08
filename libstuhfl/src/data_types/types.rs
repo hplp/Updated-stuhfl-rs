@@ -1,11 +1,7 @@
 use super::structs::*;
-use crate::error::Error;
 
 /// Function type to be used with inventory_runner
 pub type CallbackFn = dyn Fn(InventoryTag) + Send;
-
-/// Custom result type that always uses [`libstuhfl::Error`] as error type.
-pub type Result<T> = core::result::Result<T, Error>;
 
 /// HexID type to be used only for XPC numbers.
 pub type Xpc = HexID;

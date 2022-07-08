@@ -1,4 +1,9 @@
+//! Module containing error type for create.
+
 use std::fmt;
+
+/// Custom result type that always uses [`Error`] as error type.
+pub type Result<T> = core::result::Result<T, Error>;
 
 enum_from_primitive! {
     #[derive(Debug, Copy, Clone, PartialEq)]

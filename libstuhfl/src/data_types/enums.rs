@@ -1,4 +1,5 @@
 use super::structs::*;
+use std::fmt;
 
 enum_from_primitive! {
     #[derive(Copy, Clone, PartialEq, Debug)]
@@ -14,8 +15,21 @@ enum_from_primitive! {
         Antenna3 = ffi::STUHFL_D_ANTENNA_3 as u8,
         /// Antenna 4.
         Antenna4 = ffi::STUHFL_D_ANTENNA_4 as u8,
-        /// Alternative antenna.
-        AntennaAlt = ffi::STUHFL_D_ANTENNA_ALT as u8
+    }
+}
+
+impl fmt::Display for Antenna {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Antenna::Antenna1 => "Antenna 1",
+                Antenna::Antenna2 => "Antenna 2",
+                Antenna::Antenna3 => "Antenna 3",
+                Antenna::Antenna4 => "Antenna 4",
+            }
+        )
     }
 }
 
@@ -132,6 +146,20 @@ enum_from_primitive! {
         Tuning = ffi::STUHFL_D_TUNING_STATUS_TUNING as u8,
         /// Tuned
         Tuned = ffi::STUHFL_D_TUNING_STATUS_TUNED as u8,
+    }
+}
+
+impl fmt::Display for TuningStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                TuningStatus::Untuned => "Untuned",
+                TuningStatus::Tuning => "Tuning",
+                TuningStatus::Tuned => "Tuned",
+            }
+        )
     }
 }
 

@@ -1,3 +1,5 @@
+//! Module pertaining to the Gen2 RFID protocol.
+
 /* Note: All of these submodules are
  * so closely related, there's no point in
  * separating their namespaces... */
