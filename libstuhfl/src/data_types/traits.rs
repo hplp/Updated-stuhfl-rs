@@ -106,11 +106,12 @@ pub unsafe trait BasicReader: Sized + ConnectionHolder {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```no_run
     /// use libstuhfl::prelude::*;
     /// use libstuhfl::gen2::*;
     /// # fn main() -> core::result::Result<(), Box<dyn std::error::Error>> {
-    /// # let mut reader = unsafe{DummyReader::new()};
+    ///
+    /// let mut reader = Reader::autoconnect()?;
     ///
     /// let gen2_cfg = Gen2Cfg::builder()
     ///     .build()?;
