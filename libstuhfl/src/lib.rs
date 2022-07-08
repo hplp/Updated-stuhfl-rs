@@ -3,6 +3,8 @@
 //! Safe rust wrappers for the libstuhfl C middleware library. See [`reader::Reader`] to get started.
 //!
 #![warn(missing_docs)]
+#![warn(clippy::missing_docs_in_private_items)]
+#![warn(rustdoc::missing_doc_code_examples)]
 
 #[macro_use]
 extern crate enum_primitive;
@@ -20,7 +22,7 @@ extern crate ffi;
 pub mod data_types;
 pub mod error;
 pub mod gen2;
-mod helpers; // helpers contains crate-wide helper functions
+mod helpers;
 pub mod prelude;
 pub mod reader;
 

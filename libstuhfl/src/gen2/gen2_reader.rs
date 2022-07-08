@@ -7,10 +7,14 @@ use std::sync::Mutex;
 /// A reader compatible with the Gen2 standard.
 /// To instantiate this struct, see [`BasicReader::configure_gen2`].
 pub struct Gen2Reader {
+    /// keeps track of whether or not the reader is tuned
     is_tuned: bool,
 }
 
 impl Gen2Reader {
+    /// Creates an instance of self, must be private to
+    /// ensure that this doesn't 'leak' out to the end
+    /// user. Otherwise the state might not be valid.
     pub(crate) unsafe fn new() -> Self {
         Self { is_tuned: false }
     }
@@ -401,6 +405,13 @@ unsafe impl ProtocolReader for Gen2Reader {
     }
 }
 
+/// Wrapper for user specified callback funciton. This catches any unwind panics, and
+/// processes the inventory data from FFI form into Rust form.
+///
+/// # Panics
+///
+/// Any panics will be caught by the `catch_unwind`, then turned into an error.
+/// However, doing so **will** poison the Mutex.
 extern "C" fn cycle_cb(data: *mut ffi::STUHFL_T_InventoryData) -> ffi::STUHFL_T_RET_CODE {
     let cb_wrapper = std::panic::catch_unwind(|| {
         // Get user defined callback function

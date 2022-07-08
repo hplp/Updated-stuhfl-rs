@@ -224,43 +224,6 @@ impl DummyReader {
 }
 
 /*
-/// Wrapper for user specified callback funciton. This catches any unwind panics, and
-/// processes the inventory data from FFI form into Rust form.
-///
-/// # Panics
-///
-/// Any panics will be caught by the `catch_unwind`, then turned into an error.
-/// However, doing so **will** poison the Mutex.
-extern "C" fn cycle_cb(data: *mut ffi::STUHFL_T_InventoryData) -> ffi::STUHFL_T_RET_CODE {
-    let cb_wrapper = std::panic::catch_unwind(|| {
-        // Get user defined callback function
-        let cb_holder = CB_HOLDER.lock().unwrap();
-
-        // Access callback function
-        let cb_fn = cb_holder.as_ref().unwrap();
-
-        // Access data from behind pointer
-        let data = unsafe{&*data};
-
-        // Copy every scanned tag into the vector
-        for i in 0..data.tagListSize {
-            // Index pointer to array and convert it to InventoryTag
-            let tag = InventoryTag::from(unsafe{*data.tagList.offset(i as isize)});
-            // Let caller handle values
-            cb_fn(tag);
-        }
-    });
-
-    if cb_wrapper.is_err() {
-        // callback unwrapped, mutex now poisoned
-        unsafe{ffi::Inventory_RunnerStop()};
-        Error::Generic as ffi::STUHFL_T_RET_CODE
-    } else {
-        // callback finished
-        Error::None as ffi::STUHFL_T_RET_CODE
-    }
-}
-
 /// # Disconnect from reader
 ///
 /// This is handled automatically by the Drop implementation. If the reader fails

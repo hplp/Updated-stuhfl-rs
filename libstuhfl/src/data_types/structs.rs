@@ -140,6 +140,8 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_TxRxCfg> for TxRxCfg {
 }
 
 impl TxRxCfgBuilder {
+    /// Validates state by making sure the output and sensitivity
+    /// levels are within the range specified by the documentation.
     fn validate(&self) -> core::result::Result<(), String> {
         if let Some(i) = self.tx_output_level {
             if i > 0 || i < -19 {
@@ -192,6 +194,7 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_AutoTuning> for AutoTuning {
 /// only a boolean, as the algorithm parameters in the firmware
 /// are too vague.
 pub struct AutoRxSensitivity {
+    /// Just a thin wrapper around a boolean
     enable: bool,
 }
 
@@ -215,6 +218,7 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_AdaptiveSensitivity> for AutoRxSensitivity {
 /// only a boolean, as the algorithm parameters in the firmware
 /// are too vague.
 pub struct AutoTxStrength {
+    /// Just a thin wrapper around a boolean
     enable: bool,
 }
 
@@ -346,6 +350,7 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_ChannelItem> for ChannelItem {
 /// Contains a list of [`ChannelItem`]. This represents all
 /// the frequencies the reader can try to use during transmission.
 pub struct ChannelListCfg {
+    /// Actual list of channel items
     item_list: Vec<ChannelItem>,
 }
 
@@ -405,6 +410,7 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_FreqHop> for FreqHopCfg {
 #[derive(Debug, PartialEq, Clone)]
 /// Container for hexadecimal-based ID values such as TID, XPC, and EPC.
 pub struct HexID {
+    /// HexID is just a thin wrapper for a vector of bytes
     pub(crate) id: Vec<u8>,
 }
 
@@ -618,6 +624,7 @@ impl From<ffi::STUHFL_T_InventoryStatistics> for InventoryStatistics {
 }
 
 impl InventoryStatistics {
+    /// instantiates self for use within the crate
     pub(crate) fn new() -> Self {
         Self {
             timestamp: 0,

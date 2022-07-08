@@ -1,7 +1,10 @@
+//! Helper functions used within the crate
+
 use crate::data_types::*;
 use crate::error::{Error, Result};
 use enum_primitive::FromPrimitive;
 
+/// Converts the profile enum into an 'item list' aka Vec<ChannelItem>
 pub(crate) fn profile_to_item_list(profile: Profile) -> Vec<ChannelItem> {
     match profile {
         Profile::Europe => {
@@ -379,6 +382,7 @@ pub(crate) fn profile_to_item_list(profile: Profile) -> Vec<ChannelItem> {
     }
 }
 
+/// Converts a list of channel items into the ffi version
 pub(crate) fn item_list_to_ffi(
     item_list: &[ChannelItem],
 ) -> [ffi::STUHFL_T_ST25RU3993_ChannelItem; 53] {
@@ -391,6 +395,7 @@ pub(crate) fn item_list_to_ffi(
     ffi_list
 }
 
+/// Helps with error handling by converting the type into a proper rust result type
 pub(crate) fn proc_err(code: ffi::STUHFL_T_RET_CODE) -> Result<()> {
     if code == ffi::STUHFL_ERR_NONE {
         Ok(())

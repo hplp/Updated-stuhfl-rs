@@ -74,6 +74,8 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_Gen2_Anticollision> for Gen2AdaptiveQ {
 }
 
 impl Gen2AdaptiveQCfgBuilder {
+    /// Validates the configuration by ensuring that the
+    /// min_q and max_q parameters make sense
     fn validate(&self) -> core::result::Result<(), String> {
         if let Some(max) = self.max_q {
             if let Some(min) = self.min_q {
@@ -276,7 +278,9 @@ pub struct Gen2CustomCommand {
 
 /// Data to be sent with a custom RFID command
 pub struct Gen2CustomCommandData<'a> {
+    /// length of command data in bits
     pub(crate) num_bits: u16,
+    /// array of data bytes
     pub(crate) bytes: &'a [u8],
 }
 

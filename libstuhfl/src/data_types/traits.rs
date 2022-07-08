@@ -4,7 +4,10 @@ use crate::gen2;
 use crate::helpers::proc_err;
 use std::mem::zeroed;
 
+/// Allows various datatypes to be converted
+/// into their C representation within the library.
 pub(crate) trait AsFFI<T> {
+    /// Does the actual conversion
     fn as_ffi(&self) -> T;
 }
 
@@ -22,6 +25,12 @@ where
 /// Basic RFID Reader functionality. Includes commands that don't
 /// depend on any particular protocol. See [`ProtocolReader`] for
 /// commands that depend on the protocol.
+///
+/// # Safety
+///
+/// This trait must only be implemented for types that handle
+/// reader instances. Otherwise the C library's state can
+/// be corrupted.
 pub unsafe trait BasicReader: Sized {
     /// # Getting the reader version
     ///
@@ -144,14 +153,14 @@ pub unsafe trait BasicReader: Sized {
     /// called by the constructor, so there is no need for
     /// users to run this method.
     fn test_compatible(&self) -> Result<bool> {
-        // Defined in firmware
+        /// Defined in firmware
         const LOWEST_SW_VER: VersionNum = VersionNum {
             major: 3,
             minor: 1,
             micro: 0,
             nano: 0,
         };
-        // Defined in firmware
+        /// Defined in firmware
         const LOWEST_HW_VER: VersionNum = VersionNum {
             major: 1,
             minor: 1,
@@ -170,6 +179,13 @@ pub unsafe trait BasicReader: Sized {
 /// Protocol-Specific reader commands. These include any commands that require
 /// the reader to be configured to use an RFID protocol. See [`BasicReader`]
 /// for more.
+///
+/// # Safety
+///
+/// This trait must only be implemented for types that manage reader instances
+/// (see [`BasicReader`]). Furthermore, all readers implementing this trait must
+/// be able to handle the full funcitonality defined in this trait.
+///
 pub unsafe trait ProtocolReader {
     /// # Tuning reader
     ///
