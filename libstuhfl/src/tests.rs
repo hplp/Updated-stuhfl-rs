@@ -79,7 +79,7 @@ fn check_reader_version() -> TestResult {
 }
 
 #[cfg(feature = "reader_tests")]
-mod gen2_tests {
+mod gen2 {
     use super::*;
     use crate::gen2::*;
 

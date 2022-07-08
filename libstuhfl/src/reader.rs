@@ -3,20 +3,19 @@
 
 use crate::data_types::*;
 use crate::error::{Error, Result};
-use crate::gen2;
-use crate::helpers::proc_err;
 
 #[cfg(feature = "port_scanning")]
 use serialport as sp;
 
 /// Main reader struct. See [`BasicReader`] for more usage.
-pub struct Reader;
+pub struct Reader {
+    /// Holds connection
+    connection: Connection,
+}
 
-impl Drop for Reader {
-    fn drop(&mut self) {
-        if let Err(e) = unsafe { self.disconnect() } {
-            eprintln!("Error while disconnecting from reader: {}", e);
-        }
+impl ConnectionHolder for Reader {
+    fn steal_connection(self) -> Connection {
+        self.connection
     }
 }
 
@@ -104,17 +103,11 @@ impl Reader {
     /// will return [`Error::None`] if the reader's firmware or hardware is incompatible
     /// with this library.
     pub fn connect(port: &str) -> Result<Self> {
-        // Copy the port so that its "safe" from C
-        let port = std::ffi::CString::new(port).expect("Failed to convert string");
-
-        // Connect to board
-        unsafe { proc_err(ffi::Connect(port.as_ptr() as *mut _))? }
-
-        // Wait so that board has time to connect
-        std::thread::sleep(std::time::Duration::from_micros(600000));
+        // Establish connection
+        let connection = Connection::new(port)?;
 
         // Construct new instance
-        let board = Self {};
+        let board = Self { connection };
 
         // Test compatibility
         if board.test_compatible()? {
@@ -124,18 +117,22 @@ impl Reader {
             Err(Error::None)
         }
     }
+
+    /// Used for constructing new instances during conversion between
+    /// reader types.
+    pub(crate) fn new(connection: Connection) -> Self {
+        Self { connection }
+    }
 }
 
-/// A [`ProtocolReader`] implementation used for test purposes.
-/// All of its functions do nothing and should always succeed.
-pub struct DummyReader();
+/// A fake struct that behaves similarly to a [`ProtocolReader`],
+/// except none of its functions actually do anything. This is
+/// mostly used to help write documentation.
+pub struct DummyReader;
 
-impl Drop for DummyReader {
-    fn drop(&mut self) {}
-}
-
-unsafe impl BasicReader for DummyReader {
-    fn get_version(&self) -> Result<Version> {
+impl DummyReader {
+    /// Always returns the same version, see source.
+    pub fn get_version(&self) -> Result<Version> {
         Ok(Version {
             sw_ver: VersionNum {
                 major: 3,
@@ -158,21 +155,18 @@ unsafe impl BasicReader for DummyReader {
         })
     }
 
-    fn configure_gen2(self, _configuration: &gen2::Gen2Cfg) -> Result<gen2::Gen2Reader> {
-        Ok(unsafe { gen2::Gen2Reader::new() })
-    }
-
-    fn test_compatible(&self) -> Result<bool> {
+    /// Always returns [`Ok(true)`].
+    pub fn test_compatible(&self) -> Result<bool> {
         Ok(true)
     }
-}
 
-unsafe impl ProtocolReader for DummyReader {
-    fn tune(&mut self, _algo: TuningAlgorithm) -> Result<()> {
+    /// Always returns [`Ok(())`]
+    pub fn tune(&mut self, _algo: TuningAlgorithm) -> Result<()> {
         Ok(())
     }
 
-    fn inventory_once(&self) -> Result<(InventoryStatistics, Vec<InventoryTag>)> {
+    /// Always returns an empty [`InventoryStatistics`] and a single tag (with empty values)
+    pub fn inventory_once(&self) -> Result<(InventoryStatistics, Vec<InventoryTag>)> {
         Ok((
             InventoryStatistics::new(),
             vec![InventoryTag {
@@ -192,15 +186,22 @@ unsafe impl ProtocolReader for DummyReader {
         ))
     }
 
-    fn inventory(&mut self, _num_rounds: u32, _cb: Box<CallbackFn>) -> Result<InventoryStatistics> {
+    /// Always returns an empty [`InventoryStatistics`].
+    pub fn inventory(
+        &mut self,
+        _num_rounds: u32,
+        _cb: Box<CallbackFn>,
+    ) -> Result<InventoryStatistics> {
         Ok(InventoryStatistics::new())
     }
 
-    fn select(&mut self, _epc: &Epc) -> Result<()> {
+    /// Always returns [`Ok(())`]
+    pub fn select(&mut self, _epc: &Epc) -> Result<()> {
         Ok(())
     }
 
-    fn read(
+    /// Always returns an empty vector
+    pub fn read(
         &mut self,
         _bank: MemoryBank,
         _word_address: u32,
@@ -210,7 +211,8 @@ unsafe impl ProtocolReader for DummyReader {
         Ok(Vec::new())
     }
 
-    fn write(
+    /// Always returns [`Ok(())`]
+    pub fn write(
         &mut self,
         _bank: MemoryBank,
         _word_adddress: u32,
@@ -226,28 +228,10 @@ impl DummyReader {
     ///
     /// # Safety
     ///
-    /// This struct is for testing purposes only. Certain
-    /// trait implementations may or may not be safe to
-    /// use. For example, [`BasicReader::configure_gen2()`]
-    /// will create a corrupt instance of [`gen2::Gen2Reader`].
+    /// This struct is for testing purposes only.
+    /// It looks like a reader in documentation tests
+    /// but does nothing.
     pub unsafe fn new() -> Self {
         Self {}
     }
 }
-
-/*
-/// # Disconnect from reader
-///
-/// This is handled automatically by the Drop implementation. If the reader fails
-/// to disconnect for some reason, a warning message will be printed.
-impl Drop for ST25RU3993 {
-    fn drop(&mut self) {
-        unsafe {
-            // close the connection to the reader
-            if proc_err(ffi::Disconnect()).is_err() {
-                eprintln!("ERROR: Couldn't disconnect from reader during call to Drop()")
-            };
-        }
-    }
-}
-*/

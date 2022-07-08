@@ -9,14 +9,19 @@ use std::sync::Mutex;
 pub struct Gen2Reader {
     /// keeps track of whether or not the reader is tuned
     is_tuned: bool,
+    /// manages connection to reader
+    connection: Connection,
 }
 
 impl Gen2Reader {
     /// Creates an instance of self, must be private to
     /// ensure that this doesn't 'leak' out to the end
     /// user. Otherwise the state might not be valid.
-    pub(crate) unsafe fn new() -> Self {
-        Self { is_tuned: false }
+    pub(crate) fn new(connection: Connection) -> Self {
+        Self {
+            is_tuned: false,
+            connection,
+        }
     }
 
     /// # Sending Custom & Proprietary Gen2 Commands
@@ -173,11 +178,9 @@ lazy_static! {
     static ref CB_HOLDER: Mutex<Option<Box<CallbackFn>>> = Mutex::new(None);
 }
 
-impl Drop for Gen2Reader {
-    fn drop(&mut self) {
-        if let Err(e) = unsafe { self.disconnect() } {
-            eprintln!("Error while disconnecting from reader: {}", e);
-        }
+impl ConnectionHolder for Gen2Reader {
+    fn steal_connection(self) -> Connection {
+        self.connection
     }
 }
 

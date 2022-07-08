@@ -2,6 +2,7 @@ use super::{enums::*, structs::*, types::*};
 use crate::error::Result;
 use crate::gen2;
 use crate::helpers::proc_err;
+use crate::reader::Reader;
 use std::mem::zeroed;
 
 /// Allows various datatypes to be converted
@@ -30,11 +31,8 @@ where
 ///
 /// This trait must only be implemented for types that handle
 /// reader instances. Otherwise the C library's state can
-/// be corrupted. The [`ffi::Connect()`] command should be called
-/// by the deconstructor while [`ffi::Disconnect()`] should be called
-/// by the [`Drop`] implementation (See [`BasicReader::disconnect()`]).
-#[allow(drop_bounds)] // This is an encouragement to use the disconnect method
-pub unsafe trait BasicReader: Sized + Drop {
+/// be corrupted. This is enforced through the HasConnection trait
+pub unsafe trait BasicReader: Sized + ConnectionHolder {
     /// # Getting the reader version
     ///
     /// This function returns a [`Version`] instance with the reader's
@@ -89,6 +87,14 @@ pub unsafe trait BasicReader: Sized + Drop {
             sw_info: VersionInfo { info: sw_info },
             hw_info: VersionInfo { info: hw_info },
         })
+    }
+
+    /// # Configuring reader
+    ///
+    /// This function removes any protocol-specific configuration from the reader.
+    ///
+    fn disconfigure(self) -> Reader {
+        Reader::new(self.steal_connection())
     }
 
     /// # Configuring reader
@@ -148,7 +154,7 @@ pub unsafe trait BasicReader: Sized + Drop {
         };
         unsafe { proc_err(ffi::Gen2_Select(&mut gen2_select))? }
 
-        Ok(unsafe { gen2::Gen2Reader::new() })
+        Ok(gen2::Gen2Reader::new(self.steal_connection()))
     }
 
     /// Tests whether a connected reader is compatible with the
@@ -201,8 +207,7 @@ pub unsafe trait BasicReader: Sized + Drop {
 /// This trait must only be implemented for types that manage reader instances
 /// (see [`BasicReader`]). Furthermore, all readers implementing this trait must
 /// be able to handle the full funcitonality defined in this trait.
-///
-pub unsafe trait ProtocolReader {
+pub unsafe trait ProtocolReader: BasicReader {
     /// # Tuning reader
     ///
     /// Tune the reader using the specified tuning algorithm.
@@ -396,4 +401,11 @@ pub unsafe trait ProtocolReader {
         data: [u8; 2],
         password: Option<Password>,
     ) -> Result<()>;
+}
+
+/// Used to prove that a reader has an active connection.
+pub trait ConnectionHolder {
+    /// This trait is impossible to implement without having sole
+    /// access to a valid connection.
+    fn steal_connection(self) -> Connection;
 }

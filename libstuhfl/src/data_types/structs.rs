@@ -1,4 +1,5 @@
 use super::{enums::*, traits::*, types::*};
+use crate::error::Result;
 use crate::helpers::{item_list_to_ffi, profile_to_item_list};
 use enum_primitive::FromPrimitive;
 use std::fmt;
@@ -644,6 +645,38 @@ impl InventoryStatistics {
             rx_count_err_count: 0,
             resend_ack_count: 0,
             noise_suspicion_count: 0,
+        }
+    }
+}
+
+/// Manages a connection to an RFID reader
+pub struct Connection;
+
+impl Connection {
+    /// Establishes new connection to reader
+    pub fn new(port: &str) -> Result<Self> {
+        use crate::helpers::proc_err;
+        use std::{ffi::CString, thread, time::Duration};
+
+        // Copy the port so that its "safe" from C
+        let port = CString::new(port).expect("Failed to convert string");
+
+        // Connect to board
+        unsafe { proc_err(ffi::Connect(port.as_ptr() as *mut _))? }
+
+        // Wait so that board has time to connect
+        thread::sleep(Duration::from_micros(600000));
+
+        Ok(Self {})
+    }
+}
+
+impl Drop for Connection {
+    fn drop(&mut self) {
+        use crate::helpers::proc_err;
+
+        if let Err(e) = unsafe { proc_err(ffi::Disconnect()) } {
+            eprintln!("Error while disconnecting from reader: {}", e);
         }
     }
 }
