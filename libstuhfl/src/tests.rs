@@ -180,6 +180,8 @@ mod gen2 {
     #[test]
     #[serial]
     fn read_custom() -> TestResult {
+        use crate::helpers::proc_err;
+
         let reader = Reader::autoconnect()?;
 
         let gen2_config = Gen2Cfg::builder().build()?;
@@ -196,9 +198,64 @@ mod gen2 {
 
         reader.select(&tags[0].epc)?;
 
-        let bytes = reader.read(MemoryBank::User, 0x00, 2, None)?;
+        fn ebv_formatter(mut d: u32) -> Vec<u8> {
+            let mut v = Vec::new();
 
-        println!("Read bytes {:02X?}", bytes);
+            loop {
+                let b = (d & 0b0111_1111) as u8; // push 7 least significant bits
+                d >>= 7; // remove least significant bits
+                if d > 0 {
+                    v.push(b | 0b1000_0000);
+                } else {
+                    v.push(b);
+                    break;
+                }
+            }
+
+            v
+        }
+
+        let addr = 0xEC;
+
+        let ebv = ebv_formatter(addr);
+
+        let b = MemoryBank::User;
+
+        let wc = 1;
+
+        let mut d = [0; 64];
+
+        d[0] = 0b1100_0010;
+        d[1] = (b as u8) << 6;
+
+        for (i, byte) in ebv.iter().enumerate() {
+            d[i + 1] |= byte >> 2;
+            d[i + 2] |= byte << 6;
+        }
+
+        d[ebv.len() + 1] |= wc >> 2;
+        d[ebv.len() + 2] |= wc << 6;
+
+        let mut cmd = ffi::STUHFL_T_Gen2_GenericCmd {
+            cmd: ffi::STUHFL_D_GEN2_GENERIC_CMD_CRC_EXPECT_HEAD as u8,
+            pwd: [0, 0, 0, 0],
+            noResponseTime: 0xFF,
+            expectedRcvDataBitLength: 16 * (wc as u16),
+            sndDataBitLength: 34 + 8 * ebv.len() as u16,
+            appendRN16: true,
+            sndData: d,
+            rcvDataLength: 0,
+            rcvData: [0; 128],
+        };
+
+        println!("Attempting to send packet: {:02X?}", d);
+
+        unsafe { proc_err(ffi::Gen2_GenericCmd(&mut cmd))? }
+
+        println!(
+            "Read bytes {:02X?}",
+            &cmd.rcvData[..cmd.rcvDataLength as usize]
+        );
 
         Ok(())
     }
