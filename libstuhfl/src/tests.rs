@@ -198,7 +198,9 @@ mod gen2_tests {
 
         reader.write(MemoryBank::User, 0x00, [0x55, 0x55], None)?;
 
-        assert_eq!(reader.read(MemoryBank::User, 0x00, 2, None)?, [0x55, 0x55]);
+        let bytes_read = reader.read(MemoryBank::User, 0x00, 2, None)?;
+
+        assert_eq!(bytes_read, [0x55, 0x55]);
 
         Ok(())
     }

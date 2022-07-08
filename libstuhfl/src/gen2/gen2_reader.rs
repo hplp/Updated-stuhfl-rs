@@ -173,6 +173,14 @@ lazy_static! {
     static ref CB_HOLDER: Mutex<Option<Box<CallbackFn>>> = Mutex::new(None);
 }
 
+impl Drop for Gen2Reader {
+    fn drop(&mut self) {
+        if let Err(e) = unsafe { self.disconnect() } {
+            eprintln!("Error while disconnecting from reader: {}", e);
+        }
+    }
+}
+
 unsafe impl BasicReader for Gen2Reader {}
 
 unsafe impl ProtocolReader for Gen2Reader {

@@ -12,6 +12,14 @@ use serialport as sp;
 /// Main reader struct. See [`BasicReader`] for more usage.
 pub struct Reader;
 
+impl Drop for Reader {
+    fn drop(&mut self) {
+        if let Err(e) = unsafe { self.disconnect() } {
+            eprintln!("Error while disconnecting from reader: {}", e);
+        }
+    }
+}
+
 unsafe impl BasicReader for Reader {}
 
 impl Reader {
@@ -121,6 +129,10 @@ impl Reader {
 /// A [`ProtocolReader`] implementation used for test purposes.
 /// All of its functions do nothing and should always succeed.
 pub struct DummyReader();
+
+impl Drop for DummyReader {
+    fn drop(&mut self) {}
+}
 
 unsafe impl BasicReader for DummyReader {
     fn get_version(&self) -> Result<Version> {

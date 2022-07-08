@@ -30,8 +30,11 @@ where
 ///
 /// This trait must only be implemented for types that handle
 /// reader instances. Otherwise the C library's state can
-/// be corrupted.
-pub unsafe trait BasicReader: Sized {
+/// be corrupted. The [`ffi::Connect()`] command should be called
+/// by the deconstructor while [`ffi::Disconnect()`] should be called
+/// by the [`Drop`] implementation (See [`BasicReader::disconnect()`]).
+#[allow(drop_bounds)] // This is an encouragement to use the disconnect method
+pub unsafe trait BasicReader: Sized + Drop {
     /// # Getting the reader version
     ///
     /// This function returns a [`Version`] instance with the reader's
@@ -173,6 +176,19 @@ pub unsafe trait BasicReader: Sized {
 
         // Check minimum version satisfied
         Ok(ver.sw_ver >= LOWEST_SW_VER && ver.hw_ver >= LOWEST_HW_VER)
+    }
+
+    /// # Disconnecting from reader
+    ///
+    /// This function disconnects from the reader.
+    ///
+    /// # Safety
+    ///
+    /// This puts the reader in an invalid state. It should only
+    /// be called by the [`Drop`] implementation.
+    ///
+    unsafe fn disconnect(&mut self) -> Result<()> {
+        proc_err(ffi::Disconnect())
     }
 }
 
