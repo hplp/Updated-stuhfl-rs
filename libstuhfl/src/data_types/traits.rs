@@ -82,8 +82,8 @@ pub unsafe trait BasicReader: Sized {
     /// # Configuring reader
     ///
     /// This function configures the reader for use of the Gen2 protocol.
-    /// See [`Gen2Cfg`] for details. Note: all settings have valid defaults,
-    /// however most can be overrided. For usage see [`Gen2Reader`] and
+    /// See [`gen2::Gen2Cfg`] for details. Note: all settings have valid defaults,
+    /// however most can be overrided. For usage see [`gen2::Gen2Reader`] and
     /// [`ProtocolReader`].
     ///
     /// # Example
@@ -196,10 +196,10 @@ pub unsafe trait ProtocolReader {
     /// # Inventorying tags
     ///
     /// There are two ways to inventory tags, using this command or
-    /// the [`Self::invenotry()`] command. This command will only
+    /// the [`ProtocolReader::inventory()`] command. This command will only
     /// run a single round and return a vector of tags. Running this
     /// in a loop will cause a huge amount of unecessary memory allocations
-    /// and copies, so it is recommended to use [`Self::inventory()`]
+    /// and copies, so it is recommended to use [`ProtocolReader::inventory()`]
     /// if several rounds are needed.
     ///
     /// # Example
@@ -225,7 +225,7 @@ pub unsafe trait ProtocolReader {
     /// # Inventorying tags (threaded)
     ///
     /// There are two ways to inventory tags, using this command or
-    /// the [`Self::inventory_once()`] command. This command will run `num_rounds`
+    /// the [`ProtocolReader::inventory_once()`] command. This command will run `num_rounds`
     /// inventory rounds, and for each round where tags are discovered the
     /// `data_cb` will be called. Note: this is a blocking call.
     ///

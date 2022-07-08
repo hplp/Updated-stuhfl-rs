@@ -1,4 +1,4 @@
-/* 
+/*
 use super::*;
 
 type TestResult = core::result::Result<(), Box<dyn std::error::Error>>;
@@ -12,7 +12,7 @@ use serial_test::*;
 fn version_test() {
     let va = VersionNum{ major: 2, minor: 0, micro: 0, nano: 0 };
     let vb = VersionNum{ major: 1, minor: 0, micro: 0, nano: 0 };
-    
+
     assert!(va > vb);
 
     let vb = VersionNum{ major: 0, minor: 3, micro: 0, nano: 0 };
@@ -86,13 +86,13 @@ fn gen2_inventory() -> TestResult {
     // set gen2 configuration
     let gen2_cfg = Gen2Cfg::builder()
         .build()?;
-    
+
     // apply the settings
     reader.configure_gen2(&gen2_cfg)?;
 
     // tune reader
     reader.tune_freqs(TuningAlgorithm::Exact)?;
-    
+
     // run inventory
     let (statitistics, tags) = reader.inventory()?;
 
@@ -118,7 +118,7 @@ fn gen2_inventory_runner() -> TestResult {
     // set gen2 configuration
     let gen2_cfg = Gen2Cfg::builder()
         .build()?;
-    
+
     // apply the settings
     reader.configure_gen2(&gen2_cfg)?;
 
@@ -162,7 +162,7 @@ fn gen2_inventory_runner_error() -> TestResult {
     // set gen2 configuration
     let gen2_cfg = Gen2Cfg::builder()
         .build()?;
-    
+
     // apply the settings
     reader.configure_gen2(&gen2_cfg)?;
 
@@ -220,7 +220,7 @@ fn gen2_write() -> TestResult {
     // Set configuration
     let gen2_cfg = Gen2Cfg::builder()
         .build()?;
-    
+
     // Apply configuration
     reader.configure_gen2(&gen2_cfg)?;
 
@@ -253,7 +253,7 @@ fn gen2_custom_ffi() -> TestResult {
     // Set configuration
     let gen2_cfg = Gen2Cfg::builder()
         .build()?;
-    
+
     // Apply configuration
     reader.configure_gen2(&gen2_cfg)?;
 
@@ -313,7 +313,7 @@ fn gen2_custom() -> TestResult {
     // Set configuration
     let gen2_cfg = Gen2Cfg::builder()
         .build()?;
-    
+
     // Apply configuration
     reader.configure_gen2(&gen2_cfg)?;
 

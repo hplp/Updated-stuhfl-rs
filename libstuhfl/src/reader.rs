@@ -3,6 +3,7 @@
 
 use crate::data_types::*;
 use crate::error::{Error, Result};
+use crate::gen2;
 use crate::helpers::proc_err;
 
 #[cfg(feature = "port_scanning")]
@@ -40,7 +41,7 @@ impl Reader {
     /// # Errors
     ///
     /// This function errors if the reader cannot be safely connected to. A [`Error::GeneralIo`]
-    /// error may be issued if no valid ports can be found/opened. See [`Self::connect()`] for
+    /// error may be issued if no valid ports can be found/opened. See [`Reader::connect()`] for
     /// more info.
     #[cfg(feature = "port_scanning")]
     pub fn autoconnect() -> Result<Self> {
@@ -69,7 +70,7 @@ impl Reader {
 
     /// # Connecting to reader
     ///
-    /// Using [`Self::connect()`] will attempt to connect to the reader using the
+    /// Using [`Reader::connect()`] will attempt to connect to the reader using the
     /// user specified port. Note that it's up to the caller to ensure that this port
     /// is valid and in an opened state. After connecting to the reader, a check is
     /// done on the firmware and hardware versions of the board to ensure compatibility.
@@ -145,11 +146,8 @@ unsafe impl BasicReader for DummyReader {
         })
     }
 
-    fn configure_gen2(
-        self,
-        _configuration: &crate::gen2::Gen2Cfg,
-    ) -> Result<crate::gen2::Gen2Reader> {
-        Ok(unsafe { crate::gen2::Gen2Reader::new() })
+    fn configure_gen2(self, _configuration: &gen2::Gen2Cfg) -> Result<gen2::Gen2Reader> {
+        Ok(unsafe { gen2::Gen2Reader::new() })
     }
 
     fn test_compatible(&self) -> Result<bool> {
@@ -218,8 +216,8 @@ impl DummyReader {
     ///
     /// This struct is for testing purposes only. Certain
     /// trait implementations may or may not be safe to
-    /// use. For example, [`ProtocolReader::configure_gen`]
-    /// will create a corrupt instance of [`Gen2Reader`].
+    /// use. For example, [`BasicReader::configure_gen2()`]
+    /// will create a corrupt instance of [`gen2::Gen2Reader`].
     pub unsafe fn new() -> Self {
         Self {}
     }

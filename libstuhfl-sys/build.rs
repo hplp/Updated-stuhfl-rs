@@ -1,7 +1,7 @@
 // build.rs
 
-extern crate cc;
 extern crate bindgen;
+extern crate cc;
 
 fn main() {
     // Get C souce files
@@ -19,10 +19,7 @@ fn main() {
     ];
 
     // Get C include directories
-    let include = [
-        "vendor/stuhfl/include",
-        "vendor/stuhfl/include/platform",
-    ];
+    let include = ["vendor/stuhfl/include", "vendor/stuhfl/include/platform"];
 
     // Detect OS type for compilation
     let def_os = if cfg!(windows) {
@@ -37,7 +34,8 @@ fn main() {
         Some("POSIX")
     } else {
         None
-    }.expect("Couldn't detect OS type!");
+    }
+    .expect("Couldn't detect OS type!");
 
     // Compile library
     cc::Build::new()
@@ -56,7 +54,14 @@ fn main() {
         // all public functions should be included in the wrapper header
         .header("wrapper.h")
         // clang arguments (mostly include's or define's)
-        .clang_args(["-Ivendor/stuhfl/include", "-Ivendor/stuhfl/include/platform", &("-D".to_owned() + def_os)].iter())
+        .clang_args(
+            [
+                "-Ivendor/stuhfl/include",
+                "-Ivendor/stuhfl/include/platform",
+                &("-D".to_owned() + def_os),
+            ]
+            .iter(),
+        )
         // functions to be exported into the bindings
         // their associated types will be implicitely included
         .allowlist_function("Connect")

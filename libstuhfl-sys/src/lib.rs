@@ -18,23 +18,25 @@ mod tests {
     #[cfg(feature = "reader_tests")]
     fn connect_to_reader() {
         use super::*;
-        use std::ffi::{CString,CStr};
-        use std::mem;
         use serialport as sp;
+        use std::ffi::{CStr, CString};
+        use std::mem;
 
         let mut found_port: Option<String> = None;
-    
+
         if let Ok(ports) = sp::available_ports() {
             for port in ports {
                 if let sp::SerialPortType::UsbPort(port_info) = port.port_type {
                     if port_info.vid == 0x403 && port_info.pid == 0x6015 {
-                        sp::new(&port.port_name, 9600).open().expect("Couldn't open port!");
+                        sp::new(&port.port_name, 9600)
+                            .open()
+                            .expect("Couldn't open port!");
                         found_port = Some(port.port_name)
                     }
                 }
             }
         }
-        
+
         let found_port = found_port.expect("Reader not found on any ports");
 
         let port = CString::new(found_port).expect("Couldn't create string");
@@ -62,8 +64,8 @@ mod tests {
             ret |= Disconnect();
 
             match ret {
-                r if r == (STUHFL_ERR_NONE) => {},
-                r => panic!("Unknown Error: {}", r as i32)
+                r if r == (STUHFL_ERR_NONE) => {}
+                r => panic!("Unknown Error: {}", r as i32),
             }
         }
     }

@@ -9,7 +9,7 @@ impl Default for STUHFL_T_ST25RU3993_Register {
 impl Default for STUHFL_T_ST25RU3993_RwdConfig {
     fn default() -> Self {
         Self {
-            id: STUHFL_D_RWD_CFG_ID_POWER_DOWN_MODE as u8, 
+            id: STUHFL_D_RWD_CFG_ID_POWER_DOWN_MODE as u8,
             value: STUHFL_D_POWER_NORMAL as u8,
         }
     }
@@ -79,7 +79,9 @@ impl Default for STUHFL_T_ST25RU3993_Gen2_Anticollision {
             maxQ: STUHFL_D_GEN2_MAXQ as u8,
             options: 0,
             C1: [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
-            C2: [35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35],
+            C2: [
+                35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
+            ],
         }
     }
 }
@@ -191,7 +193,7 @@ impl Default for STUHFL_T_ST25RU3993_ChannelItem {
     fn default() -> Self {
         Self {
             frequency: STUHFL_D_DEFAULT_FREQUENCY,
-            caps: [ STUHFL_T_ST25RU3993_Caps::default(); 2 ],
+            caps: [STUHFL_T_ST25RU3993_Caps::default(); 2],
             rfu1: 0,
             rfu2: 0,
         }
@@ -205,14 +207,14 @@ impl STUHFL_T_ST25RU3993_ChannelItem {
             frequency: raw.0,
             caps: [
                 STUHFL_T_ST25RU3993_Caps {
-                    cin: raw.1.0.0,
-                    clen: raw.1.0.1,
-                    cout: raw.1.0.2,
+                    cin: raw.1 .0 .0,
+                    clen: raw.1 .0 .1,
+                    cout: raw.1 .0 .2,
                 },
                 STUHFL_T_ST25RU3993_Caps {
-                    cin: raw.1.1.0,
-                    clen: raw.1.1.1,
-                    cout: raw.1.1.2,
+                    cin: raw.1 .1 .0,
+                    clen: raw.1 .1 .1,
+                    cout: raw.1 .1 .2,
                 },
             ],
             rfu1: raw.2,
@@ -227,7 +229,7 @@ impl Default for STUHFL_T_ST25RU3993_ChannelList {
             persistent: false,
             numFrequencies: 1,
             channelListIdx: 0,
-            itemList: [ STUHFL_T_ST25RU3993_ChannelItem::default(); 53 ]
+            itemList: [STUHFL_T_ST25RU3993_ChannelItem::default(); 53],
         }
     }
 }
@@ -239,108 +241,548 @@ impl STUHFL_T_ST25RU3993_ChannelList {
         match profile as u32 {
             STUHFL_D_PROFILE_EUROPE => {
                 list.numFrequencies = 4;
-                list.itemList[0] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 865700,((12,12,14), (12, 9,16)),0,0 ));
-                list.itemList[1] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 866300,((12,12,14), (11, 9,16)),0,0 ));
-                list.itemList[2] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 866900,((11,12,14), (11, 9,16)),0,0 ));
-                list.itemList[3] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 867500,((11,12,14), (11, 9,16)),0,0 ));
-            },
+                list.itemList[0] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    865700,
+                    ((12, 12, 14), (12, 9, 16)),
+                    0,
+                    0,
+                ));
+                list.itemList[1] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    866300,
+                    ((12, 12, 14), (11, 9, 16)),
+                    0,
+                    0,
+                ));
+                list.itemList[2] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    866900,
+                    ((11, 12, 14), (11, 9, 16)),
+                    0,
+                    0,
+                ));
+                list.itemList[3] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    867500,
+                    ((11, 12, 14), (11, 9, 16)),
+                    0,
+                    0,
+                ));
+            }
             STUHFL_D_PROFILE_USA => {
                 list.numFrequencies = 50;
-                list.itemList[0]  = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 902750,((13,24,12), ( 9,19,15)),0,0 ));
-                list.itemList[1]  = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 903250,((13,24,12), ( 9,19,15)),0,0 ));
-                list.itemList[2]  = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 903750,((13,24,12), ( 9,19,15)),0,0 ));
-                list.itemList[3]  = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 904250,((13,24,12), ( 9,19,15)),0,0 ));
-                list.itemList[4]  = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 904750,(( 9, 8,12), ( 9,19,15)),0,0 ));
-                list.itemList[5]  = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 905250,(( 9, 8,12), ( 9,19,15)),0,0 ));
-                list.itemList[6]  = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 905750,(( 9,19,14), (10,25,15)),0,0 ));
-                list.itemList[7]  = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 906250,(( 9, 8,12), (10,25,15)),0,0 ));
-                list.itemList[8]  = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 906750,(( 9, 8,12), ( 9,21,15)),0,0 ));
-                list.itemList[9]  = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 907250,(( 9, 8,12), ( 9,21,15)),0,0 ));
-                list.itemList[10] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 907750,(( 9, 8,12), ( 9,21,15)),0,0 ));
-                list.itemList[11] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 908250,(( 9, 8,12), ( 9,21,15)),0,0 ));
-                list.itemList[12] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 908750,(( 9,23,14), ( 9,21,15)),0,0 ));
-                list.itemList[13] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 909250,(( 9,23,14), ( 9,21,15)),0,0 ));
-                list.itemList[14] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 909750,(( 9,23,14), ( 9,22,15)),0,0 ));
-                list.itemList[15] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 910250,(( 9,23,14), ( 9,22,15)),0,0 ));
-                list.itemList[16] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 910750,(( 9,23,14), ( 9,22,15)),0,0 ));
-                list.itemList[17] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 911250,(( 9,23,14), ( 9,22,15)),0,0 ));
-                list.itemList[18] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 911750,(( 9,23,14), ( 9,22,15)),0,0 ));
-                list.itemList[19] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 912250,(( 9,23,14), ( 9,22,15)),0,0 ));
-                list.itemList[20] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 912750,(( 9,23,14), ( 9, 8,13)),0,0 ));
-                list.itemList[21] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 913250,(( 9,23,14), ( 9, 8,13)),0,0 ));
-                list.itemList[22] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 913750,(( 9, 8,12), ( 9, 8,13)),0,0 ));
-                list.itemList[23] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 914250,(( 9, 8,12), ( 9,25,15)),0,0 ));
-                list.itemList[24] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 914750,(( 9, 8,12), ( 9,25,15)),0,0 ));
-                list.itemList[25] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 915250,(( 9, 8,12), ( 9,25,15)),0,0 ));
-                list.itemList[26] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 915750,(( 9, 8,12), ( 9,25,15)),0,0 ));
-                list.itemList[27] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 916250,(( 9, 8,12), ( 9,14,14)),0,0 ));
-                list.itemList[28] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 916750,(( 9, 8,12), ( 9,14,14)),0,0 ));
-                list.itemList[29] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 917250,(( 9, 8,12), ( 9,14,14)),0,0 ));
-                list.itemList[30] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 917750,(( 9,10,12), ( 9,14,14)),0,0 ));
-                list.itemList[31] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 918250,((12,24,12), ( 9,27,15)),0,0 ));
-                list.itemList[32] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 918750,((12,24,12), ( 9,27,15)),0,0 ));
-                list.itemList[33] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 919250,((12,24,12), ( 9,29,15)),0,0 ));
-                list.itemList[34] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 919750,((12,24,12), ( 9,29,15)),0,0 ));
-                list.itemList[35] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 920250,((12,24,12), ( 9,29,15)),0,0 ));
-                list.itemList[36] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 920750,((12,24,12), ( 9,29,15)),0,0 ));
-                list.itemList[37] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 921250,((12,24,12), ( 9,29,15)),0,0 ));
-                list.itemList[38] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 921750,((12,24,12), ( 9,29,15)),0,0 ));
-                list.itemList[39] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 922250,((10,16,12), ( 9,29,15)),0,0 ));
-                list.itemList[40] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 922750,((10,16,12), ( 9,30,15)),0,0 ));
-                list.itemList[41] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 923250,((10,16,12), ( 9,30,15)),0,0 ));
-                list.itemList[42] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 923750,((10,16,12), ( 9,30,15)),0,0 ));
-                list.itemList[43] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 924250,((10,16,12), ( 9,30,15)),0,0 ));
-                list.itemList[44] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 924750,((10,16,12), ( 9,30,15)),0,0 ));
-                list.itemList[45] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 925250,((10,16,12), ( 9,30,15)),0,0 ));
-                list.itemList[46] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 925750,((10,16,12), ( 9,30,15)),0,0 ));
-                list.itemList[47] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 926250,(( 8, 6,12), ( 9,30,15)),0,0 ));
-                list.itemList[48] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 926750,(( 8, 6,12), ( 9,30,15)),0,0 ));
-                list.itemList[49] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 927250,(( 8, 6,12), ( 9,30,15)),0,0 ));
-            },
+                list.itemList[0] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    902750,
+                    ((13, 24, 12), (9, 19, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[1] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    903250,
+                    ((13, 24, 12), (9, 19, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[2] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    903750,
+                    ((13, 24, 12), (9, 19, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[3] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    904250,
+                    ((13, 24, 12), (9, 19, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[4] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    904750,
+                    ((9, 8, 12), (9, 19, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[5] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    905250,
+                    ((9, 8, 12), (9, 19, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[6] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    905750,
+                    ((9, 19, 14), (10, 25, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[7] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    906250,
+                    ((9, 8, 12), (10, 25, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[8] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    906750,
+                    ((9, 8, 12), (9, 21, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[9] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    907250,
+                    ((9, 8, 12), (9, 21, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[10] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    907750,
+                    ((9, 8, 12), (9, 21, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[11] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    908250,
+                    ((9, 8, 12), (9, 21, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[12] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    908750,
+                    ((9, 23, 14), (9, 21, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[13] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    909250,
+                    ((9, 23, 14), (9, 21, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[14] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    909750,
+                    ((9, 23, 14), (9, 22, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[15] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    910250,
+                    ((9, 23, 14), (9, 22, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[16] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    910750,
+                    ((9, 23, 14), (9, 22, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[17] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    911250,
+                    ((9, 23, 14), (9, 22, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[18] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    911750,
+                    ((9, 23, 14), (9, 22, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[19] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    912250,
+                    ((9, 23, 14), (9, 22, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[20] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    912750,
+                    ((9, 23, 14), (9, 8, 13)),
+                    0,
+                    0,
+                ));
+                list.itemList[21] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    913250,
+                    ((9, 23, 14), (9, 8, 13)),
+                    0,
+                    0,
+                ));
+                list.itemList[22] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    913750,
+                    ((9, 8, 12), (9, 8, 13)),
+                    0,
+                    0,
+                ));
+                list.itemList[23] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    914250,
+                    ((9, 8, 12), (9, 25, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[24] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    914750,
+                    ((9, 8, 12), (9, 25, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[25] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    915250,
+                    ((9, 8, 12), (9, 25, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[26] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    915750,
+                    ((9, 8, 12), (9, 25, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[27] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    916250,
+                    ((9, 8, 12), (9, 14, 14)),
+                    0,
+                    0,
+                ));
+                list.itemList[28] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    916750,
+                    ((9, 8, 12), (9, 14, 14)),
+                    0,
+                    0,
+                ));
+                list.itemList[29] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    917250,
+                    ((9, 8, 12), (9, 14, 14)),
+                    0,
+                    0,
+                ));
+                list.itemList[30] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    917750,
+                    ((9, 10, 12), (9, 14, 14)),
+                    0,
+                    0,
+                ));
+                list.itemList[31] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    918250,
+                    ((12, 24, 12), (9, 27, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[32] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    918750,
+                    ((12, 24, 12), (9, 27, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[33] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    919250,
+                    ((12, 24, 12), (9, 29, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[34] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    919750,
+                    ((12, 24, 12), (9, 29, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[35] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    920250,
+                    ((12, 24, 12), (9, 29, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[36] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    920750,
+                    ((12, 24, 12), (9, 29, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[37] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    921250,
+                    ((12, 24, 12), (9, 29, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[38] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    921750,
+                    ((12, 24, 12), (9, 29, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[39] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    922250,
+                    ((10, 16, 12), (9, 29, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[40] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    922750,
+                    ((10, 16, 12), (9, 30, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[41] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    923250,
+                    ((10, 16, 12), (9, 30, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[42] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    923750,
+                    ((10, 16, 12), (9, 30, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[43] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    924250,
+                    ((10, 16, 12), (9, 30, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[44] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    924750,
+                    ((10, 16, 12), (9, 30, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[45] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    925250,
+                    ((10, 16, 12), (9, 30, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[46] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    925750,
+                    ((10, 16, 12), (9, 30, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[47] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    926250,
+                    ((8, 6, 12), (9, 30, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[48] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    926750,
+                    ((8, 6, 12), (9, 30, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[49] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    927250,
+                    ((8, 6, 12), (9, 30, 15)),
+                    0,
+                    0,
+                ));
+            }
             STUHFL_D_PROFILE_JAPAN => {
                 list.numFrequencies = 9;
-                list.itemList[0] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 920500,((10,16,12), ( 9,29,15)),0,0 ));
-                list.itemList[1] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 920700,((10,16,12), ( 9,29,15)),0,0 ));
-                list.itemList[2] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 920900,((10,16,12), ( 9,29,15)),0,0 ));
-                list.itemList[3] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 921100,((10,16,12), ( 9,29,15)),0,0 ));
-                list.itemList[4] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 921300,((10,16,12), ( 9,29,15)),0,0 ));
-                list.itemList[5] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 921500,((10,16,12), ( 9,29,15)),0,0 ));
-                list.itemList[6] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 921700,((10,16,12), ( 9,29,15)),0,0 ));
-                list.itemList[7] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 921900,((10,16,12), ( 9,29,15)),0,0 ));
-                list.itemList[8] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 922100,((10,16,12), ( 9,30,15)),0,0 ));
-            },
+                list.itemList[0] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    920500,
+                    ((10, 16, 12), (9, 29, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[1] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    920700,
+                    ((10, 16, 12), (9, 29, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[2] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    920900,
+                    ((10, 16, 12), (9, 29, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[3] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    921100,
+                    ((10, 16, 12), (9, 29, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[4] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    921300,
+                    ((10, 16, 12), (9, 29, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[5] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    921500,
+                    ((10, 16, 12), (9, 29, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[6] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    921700,
+                    ((10, 16, 12), (9, 29, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[7] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    921900,
+                    ((10, 16, 12), (9, 29, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[8] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    922100,
+                    ((10, 16, 12), (9, 30, 15)),
+                    0,
+                    0,
+                ));
+            }
             STUHFL_D_PROFILE_CHINA => {
                 list.numFrequencies = 16;
-                list.itemList[0]  = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 840625,((15,21,15), (13,15,18)),0,0 ));
-                list.itemList[1]  = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 840875,((15,21,15), (13,15,18)),0,0 ));
-                list.itemList[2]  = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 841125,((15,21,15), (13,15,18)),0,0 ));
-                list.itemList[3]  = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 841375,((15,21,15), (13,15,18)),0,0 ));
-                list.itemList[4]  = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 841625,((15,21,15), (13,15,18)),0,0 ));
-                list.itemList[5]  = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 841875,((15,21,15), (13,15,18)),0,0 ));
-                list.itemList[6]  = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 842125,((13,14,15), (13,15,18)),0,0 ));
-                list.itemList[7]  = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 842375,((13,14,15), (13,15,18)),0,0 ));
-                list.itemList[8]  = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 842625,((13,14,15), (16,20,17)),0,0 ));
-                list.itemList[9]  = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 842875,((13,14,15), (16,20,17)),0,0 ));
-                list.itemList[10] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 843125,((15,23,15), (16,20,17)),0,0 ));
-                list.itemList[11] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 843375,((15,23,15), (16,20,17)),0,0 ));
-                list.itemList[12] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 843625,((15,23,15), (16,20,17)),0,0 ));
-                list.itemList[13] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 843875,((15,23,15), (16,20,17)),0,0 ));
-                list.itemList[14] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 844125,((15,23,15), (16,20,17)),0,0 ));
-                list.itemList[15] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 844375,((15,23,15), (16,20,17)),0,0 ));
+                list.itemList[0] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    840625,
+                    ((15, 21, 15), (13, 15, 18)),
+                    0,
+                    0,
+                ));
+                list.itemList[1] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    840875,
+                    ((15, 21, 15), (13, 15, 18)),
+                    0,
+                    0,
+                ));
+                list.itemList[2] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    841125,
+                    ((15, 21, 15), (13, 15, 18)),
+                    0,
+                    0,
+                ));
+                list.itemList[3] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    841375,
+                    ((15, 21, 15), (13, 15, 18)),
+                    0,
+                    0,
+                ));
+                list.itemList[4] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    841625,
+                    ((15, 21, 15), (13, 15, 18)),
+                    0,
+                    0,
+                ));
+                list.itemList[5] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    841875,
+                    ((15, 21, 15), (13, 15, 18)),
+                    0,
+                    0,
+                ));
+                list.itemList[6] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    842125,
+                    ((13, 14, 15), (13, 15, 18)),
+                    0,
+                    0,
+                ));
+                list.itemList[7] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    842375,
+                    ((13, 14, 15), (13, 15, 18)),
+                    0,
+                    0,
+                ));
+                list.itemList[8] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    842625,
+                    ((13, 14, 15), (16, 20, 17)),
+                    0,
+                    0,
+                ));
+                list.itemList[9] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    842875,
+                    ((13, 14, 15), (16, 20, 17)),
+                    0,
+                    0,
+                ));
+                list.itemList[10] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    843125,
+                    ((15, 23, 15), (16, 20, 17)),
+                    0,
+                    0,
+                ));
+                list.itemList[11] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    843375,
+                    ((15, 23, 15), (16, 20, 17)),
+                    0,
+                    0,
+                ));
+                list.itemList[12] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    843625,
+                    ((15, 23, 15), (16, 20, 17)),
+                    0,
+                    0,
+                ));
+                list.itemList[13] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    843875,
+                    ((15, 23, 15), (16, 20, 17)),
+                    0,
+                    0,
+                ));
+                list.itemList[14] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    844125,
+                    ((15, 23, 15), (16, 20, 17)),
+                    0,
+                    0,
+                ));
+                list.itemList[15] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    844375,
+                    ((15, 23, 15), (16, 20, 17)),
+                    0,
+                    0,
+                ));
             }
             STUHFL_D_PROFILE_CHINA2 => {
                 list.numFrequencies = 16;
-                list.itemList[0] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 920500,((10,16,12), ( 9,29,15)),0,0 ));
-                list.itemList[1] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 920700,((10,16,12), ( 9,29,15)),0,0 ));
-                list.itemList[2] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 920900,((10,16,12), ( 9,29,15)),0,0 ));
-                list.itemList[3] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 921100,((10,16,12), ( 9,29,15)),0,0 ));
-                list.itemList[4] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 921300,((10,16,12), ( 9,29,15)),0,0 ));
-                list.itemList[5] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 921500,((10,16,12), ( 9,29,15)),0,0 ));
-                list.itemList[6] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 921700,((10,16,12), ( 9,29,15)),0,0 ));
-                list.itemList[7] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 921900,((10,16,12), ( 9,29,15)),0,0 ));
-                list.itemList[8] = STUHFL_T_ST25RU3993_ChannelItem::from_raw(( 922100,((10,16,12), ( 9,30,15)),0,0 ));
+                list.itemList[0] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    920500,
+                    ((10, 16, 12), (9, 29, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[1] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    920700,
+                    ((10, 16, 12), (9, 29, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[2] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    920900,
+                    ((10, 16, 12), (9, 29, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[3] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    921100,
+                    ((10, 16, 12), (9, 29, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[4] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    921300,
+                    ((10, 16, 12), (9, 29, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[5] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    921500,
+                    ((10, 16, 12), (9, 29, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[6] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    921700,
+                    ((10, 16, 12), (9, 29, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[7] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    921900,
+                    ((10, 16, 12), (9, 29, 15)),
+                    0,
+                    0,
+                ));
+                list.itemList[8] = STUHFL_T_ST25RU3993_ChannelItem::from_raw((
+                    922100,
+                    ((10, 16, 12), (9, 30, 15)),
+                    0,
+                    0,
+                ));
             }
-            _ => panic!("Error: Invalid profile attempted to be initialized")
+            _ => panic!("Error: Invalid profile attempted to be initialized"),
         }
 
         list
@@ -365,7 +807,7 @@ impl Default for STUHFL_T_Gen2_Select {
             target: STUHFL_D_GEN2_TARGET_S0 as u8,
             action: 0,
             memoryBank: STUHFL_D_GEN2_MEMORY_BANK_EPC as u8,
-            mask: [ 0; 32 ],
+            mask: [0; 32],
             maskBitPointer: 0,
             maskBitLength: 0,
             truncation: false as u8,
