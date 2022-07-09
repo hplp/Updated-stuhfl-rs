@@ -250,7 +250,7 @@ mod gen2 {
         data[ebv.len() + 1] |= wc >> 2;
         data[ebv.len() + 2] |= wc << 6;
 
-        let snd_len = 34 + 8 * ebv.len() as u16;
+        let snd_len = 18 + 8 * ebv.len() as u16;
         let rcv_len = 16 * (wc as u16) + 16; // account for rn16
 
         let mut cmd = ffi::STUHFL_T_Gen2_GenericCmd {
@@ -270,7 +270,12 @@ mod gen2 {
             data, snd_len, rcv_len,
         );
 
-        unsafe { proc_err(ffi::Gen2_GenericCmd(&mut cmd))? }
+        if let Err(e) = unsafe { proc_err(ffi::Gen2_GenericCmd(&mut cmd)) } {
+            println!(
+                "Failed to execute command ({}). Read bytes:\n{:02X?}",
+                e, &cmd.rcvData
+            );
+        }
 
         println!(
             "Read bytes {:02X?}",
