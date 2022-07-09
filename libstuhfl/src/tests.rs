@@ -198,19 +198,33 @@ mod gen2 {
 
         reader.select(&tags[0].epc)?;
 
-        fn ebv_formatter(mut d: u32) -> Vec<u8> {
+        fn ebv_formatter(mut d_in: u32) -> Vec<u8> {
             let mut v = Vec::new();
+            let mut first_run = true;
 
+            // runs backwards
             loop {
-                let b = (d & 0b0111_1111) as u8; // push 7 least significant bits
-                d >>= 7; // remove least significant bits
-                if d > 0 {
-                    v.push(b | 0b1000_0000);
+                // save 7 bit chunk
+                let chunk = (d_in & 0b0111_1111) as u8;
+
+                // discard chunk from data
+                d_in >>= 7;
+
+                // first chunk has marker
+                if first_run {
+                    v.push(chunk);
+                    first_run = false;
                 } else {
-                    v.push(b);
+                    v.push(chunk | 0b1000_0000);
+                }
+
+                // stop when we encode all data
+                if d_in == 0 {
                     break;
                 }
             }
+
+            v.reverse();
 
             v
         }
@@ -219,22 +233,22 @@ mod gen2 {
 
         let ebv = ebv_formatter(addr);
 
-        let b = MemoryBank::User;
+        let bank = MemoryBank::User;
 
         let wc = 1;
 
-        let mut d = [0; 64];
+        let mut data = [0; 64];
 
-        d[0] = 0b1100_0010;
-        d[1] = (b as u8) << 6;
+        data[0] = 0b1100_0010;
+        data[1] = (bank as u8) << 6;
 
         for (i, byte) in ebv.iter().enumerate() {
-            d[i + 1] |= byte >> 2;
-            d[i + 2] |= byte << 6;
+            data[i + 1] |= byte >> 2;
+            data[i + 2] |= byte << 6;
         }
 
-        d[ebv.len() + 1] |= wc >> 2;
-        d[ebv.len() + 2] |= wc << 6;
+        data[ebv.len() + 1] |= wc >> 2;
+        data[ebv.len() + 2] |= wc << 6;
 
         let mut cmd = ffi::STUHFL_T_Gen2_GenericCmd {
             cmd: ffi::STUHFL_D_GEN2_GENERIC_CMD_CRC_EXPECT_HEAD as u8,
@@ -243,12 +257,12 @@ mod gen2 {
             expectedRcvDataBitLength: 16 * (wc as u16),
             sndDataBitLength: 34 + 8 * ebv.len() as u16,
             appendRN16: true,
-            sndData: d,
+            sndData: data,
             rcvDataLength: 0,
             rcvData: [0; 128],
         };
 
-        println!("Attempting to send packet: {:02X?}", d);
+        println!("Attempting to send packet: {:02X?}", data);
 
         unsafe { proc_err(ffi::Gen2_GenericCmd(&mut cmd))? }
 
