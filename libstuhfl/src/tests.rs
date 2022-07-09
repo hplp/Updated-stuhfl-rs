@@ -196,7 +196,7 @@ mod gen2 {
 
         reader.select(&tags[0].epc)?;
 
-        let bytes = reader.read_alt(MemoryBank::User, 0xCE, 1, None)?;
+        let bytes = reader.read_alt(MemoryBank::User, 0xEC, 1, None)?;
 
         println!("Read bytes: {:0X?}", bytes);
 
