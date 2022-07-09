@@ -403,3 +403,35 @@ pub(crate) fn proc_err(code: ffi::STUHFL_T_RET_CODE) -> Result<()> {
         Err(Error::from_u32(code).unwrap())
     }
 }
+
+/// Formates data into the EBV format
+pub(crate) fn ebv_formatter(mut d_in: u32) -> Vec<u8> {
+    let mut v = Vec::new();
+    let mut first_run = true;
+
+    // runs backwards
+    loop {
+        // save 7 bit chunk
+        let chunk = (d_in & 0b0111_1111) as u8;
+
+        // discard chunk from data
+        d_in >>= 7;
+
+        // first chunk has marker
+        if first_run {
+            v.push(chunk);
+            first_run = false;
+        } else {
+            v.push(chunk | 0b1000_0000);
+        }
+
+        // stop when we encode all data
+        if d_in == 0 {
+            break;
+        }
+    }
+
+    v.reverse();
+
+    v
+}

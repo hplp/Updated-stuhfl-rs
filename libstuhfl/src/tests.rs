@@ -42,7 +42,7 @@ fn version_comparison() {
 }
 
 #[test]
-fn gen2_cfg_builder() -> TestResult {
+fn cfg_builder() -> TestResult {
     use crate::gen2::*;
 
     // Builder should have valid defaults for all configuration values
@@ -79,13 +79,13 @@ fn check_reader_version() -> TestResult {
 }
 
 #[cfg(feature = "reader_tests")]
-mod gen2_tests {
+mod gen2 {
     use super::*;
     use crate::gen2::*;
 
     #[test]
     #[serial]
-    fn gen2_configure() -> TestResult {
+    fn configure() -> TestResult {
         let reader = Reader::autoconnect()?;
 
         let gen2_config = Gen2Cfg::builder().build()?;
@@ -99,7 +99,7 @@ mod gen2_tests {
 
     #[test]
     #[serial]
-    fn gen2_inventory_once() -> TestResult {
+    fn inventory_once() -> TestResult {
         let reader = Reader::autoconnect()?;
 
         let gen2_config = Gen2Cfg::builder().build()?;
@@ -121,7 +121,7 @@ mod gen2_tests {
 
     #[test]
     #[serial]
-    fn gen2_inventory_runner() -> TestResult {
+    fn inventory_runner() -> TestResult {
         use std::sync::{Arc, Mutex};
 
         let reader = Reader::autoconnect()?;
@@ -155,7 +155,7 @@ mod gen2_tests {
 
     #[test]
     #[serial]
-    fn gen2_read() -> TestResult {
+    fn read() -> TestResult {
         let reader = Reader::autoconnect()?;
 
         let gen2_config = Gen2Cfg::builder().build()?;
@@ -179,7 +179,33 @@ mod gen2_tests {
 
     #[test]
     #[serial]
-    fn gen2_write() -> TestResult {
+    fn read_alt() -> TestResult {
+        let reader = Reader::autoconnect()?;
+
+        let gen2_config = Gen2Cfg::builder().build()?;
+
+        let mut reader = reader.configure_gen2(&gen2_config)?;
+
+        reader.tune(TuningAlgorithm::Exact)?;
+
+        let (_stats, tags) = reader.inventory_once()?;
+
+        if tags.is_empty() {
+            panic!("No tags found")
+        }
+
+        reader.select(&tags[0].epc)?;
+
+        let bytes = reader.read_alt(MemoryBank::User, 0xEC, 1, None)?;
+
+        println!("Read bytes: {:0X?}", bytes);
+
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    fn write() -> TestResult {
         let reader = Reader::autoconnect()?;
 
         let gen2_config = Gen2Cfg::builder().build()?;
@@ -207,7 +233,7 @@ mod gen2_tests {
 
     #[test]
     #[serial]
-    fn gen2_custom() -> TestResult {
+    fn custom() -> TestResult {
         let reader = Reader::autoconnect()?;
 
         let gen2_config = Gen2Cfg::builder().build()?;

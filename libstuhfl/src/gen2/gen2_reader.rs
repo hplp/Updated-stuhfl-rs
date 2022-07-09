@@ -1,7 +1,7 @@
 use crate::data_types::*;
 use crate::error::{Error, Result};
 use crate::gen2::*;
-use crate::helpers::proc_err;
+use crate::helpers::{ebv_formatter, proc_err};
 use std::sync::Mutex;
 
 /// A reader compatible with the Gen2 standard.
@@ -9,14 +9,70 @@ use std::sync::Mutex;
 pub struct Gen2Reader {
     /// keeps track of whether or not the reader is tuned
     is_tuned: bool,
+    /// manages connection to reader
+    connection: Connection,
 }
 
 impl Gen2Reader {
     /// Creates an instance of self, must be private to
     /// ensure that this doesn't 'leak' out to the end
     /// user. Otherwise the state might not be valid.
-    pub(crate) unsafe fn new() -> Self {
-        Self { is_tuned: false }
+    pub(crate) fn new(connection: Connection) -> Self {
+        Self {
+            is_tuned: false,
+            connection,
+        }
+    }
+
+    /// Workaround for firmware issues with read command.
+    /// Uses custom command in background.
+    pub fn read_alt(
+        &mut self,
+        bank: MemoryBank,
+        word_address: u32,
+        word_count: u8,
+        password: Option<Password>,
+    ) -> Result<Vec<u8>> {
+        let pwd = password
+            .unwrap_or_else(|| Password::from([0; 4]))
+            .into_inner();
+
+        let ebv = ebv_formatter(word_address);
+
+        let mut data = [0; 64];
+
+        data[0] = 0b1100_0010;
+        data[1] = (bank as u8) << 6;
+
+        let ebv_len = ebv.len();
+
+        for (i, byte) in ebv.iter().enumerate() {
+            data[i + 1] |= byte >> 2;
+            data[i + 2] |= byte << 6;
+        }
+
+        data[ebv_len + 1] |= word_count >> 2;
+        data[ebv_len + 2] |= word_count << 6;
+
+        let snd_len = 18 + 8 * ebv_len as u16;
+        let rcv_len = 16 * (word_count as u16) + 16; // account for rn16
+
+        let mut cmd = ffi::STUHFL_T_Gen2_GenericCmd {
+            cmd: ffi::STUHFL_D_GEN2_GENERIC_CMD_CRC_EXPECT_HEAD as u8,
+            pwd,
+            noResponseTime: 0xFF,
+            expectedRcvDataBitLength: rcv_len,
+            sndDataBitLength: snd_len,
+            appendRN16: true,
+            sndData: data,
+            rcvDataLength: 0,
+            rcvData: [0; 128],
+        };
+
+        unsafe { proc_err(ffi::Gen2_GenericCmd(&mut cmd))? }
+
+        // discard the last 2 bytes (RN16)
+        Ok(Vec::from(&cmd.rcvData[..(cmd.rcvDataLength - 2) as usize]))
     }
 
     /// # Sending Custom & Proprietary Gen2 Commands
@@ -103,10 +159,12 @@ impl Gen2Reader {
         command: &Gen2CustomCommand,
         data_to_send: Option<Gen2CustomCommandData>,
         bits_to_recieve: u16,
-        password: Option<[u8; 4]>,
+        password: Option<Password>,
     ) -> Result<Vec<u8>> {
         // Determine password
-        let pwd = password.unwrap_or([0; 4]);
+        let pwd = password
+            .unwrap_or_else(|| Password::from([0; 4]))
+            .into_inner();
 
         // Determine command to send
         let cmd = match (command.use_crc, command.expect_header) {
@@ -173,11 +231,9 @@ lazy_static! {
     static ref CB_HOLDER: Mutex<Option<Box<CallbackFn>>> = Mutex::new(None);
 }
 
-impl Drop for Gen2Reader {
-    fn drop(&mut self) {
-        if let Err(e) = unsafe { self.disconnect() } {
-            eprintln!("Error while disconnecting from reader: {}", e);
-        }
+impl ConnectionHolder for Gen2Reader {
+    fn steal_connection(self) -> Connection {
+        self.connection
     }
 }
 
