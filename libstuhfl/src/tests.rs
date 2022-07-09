@@ -179,9 +179,7 @@ mod gen2 {
 
     #[test]
     #[serial]
-    fn read_custom() -> TestResult {
-        use crate::helpers::proc_err;
-
+    fn read_alt() -> TestResult {
         let reader = Reader::autoconnect()?;
 
         let gen2_config = Gen2Cfg::builder().build()?;
@@ -198,89 +196,9 @@ mod gen2 {
 
         reader.select(&tags[0].epc)?;
 
-        fn ebv_formatter(mut d_in: u32) -> Vec<u8> {
-            let mut v = Vec::new();
-            let mut first_run = true;
+        let bytes = reader.read_alt(MemoryBank::User, 0xCE, 1, None)?;
 
-            // runs backwards
-            loop {
-                // save 7 bit chunk
-                let chunk = (d_in & 0b0111_1111) as u8;
-
-                // discard chunk from data
-                d_in >>= 7;
-
-                // first chunk has marker
-                if first_run {
-                    v.push(chunk);
-                    first_run = false;
-                } else {
-                    v.push(chunk | 0b1000_0000);
-                }
-
-                // stop when we encode all data
-                if d_in == 0 {
-                    break;
-                }
-            }
-
-            v.reverse();
-
-            v
-        }
-
-        let addr = 0xEC;
-
-        let ebv = ebv_formatter(addr);
-
-        let bank = MemoryBank::User;
-
-        let wc = 1;
-
-        let mut data = [0; 64];
-
-        data[0] = 0b1100_0010;
-        data[1] = (bank as u8) << 6;
-
-        for (i, byte) in ebv.iter().enumerate() {
-            data[i + 1] |= byte >> 2;
-            data[i + 2] |= byte << 6;
-        }
-
-        data[ebv.len() + 1] |= wc >> 2;
-        data[ebv.len() + 2] |= wc << 6;
-
-        let snd_len = 18 + 8 * ebv.len() as u16;
-        let rcv_len = 16 * (wc as u16) + 16; // account for rn16
-
-        let mut cmd = ffi::STUHFL_T_Gen2_GenericCmd {
-            cmd: ffi::STUHFL_D_GEN2_GENERIC_CMD_CRC_EXPECT_HEAD as u8,
-            pwd: [0, 0, 0, 0],
-            noResponseTime: 0xFF,
-            expectedRcvDataBitLength: snd_len,
-            sndDataBitLength: rcv_len,
-            appendRN16: true,
-            sndData: data,
-            rcvDataLength: 0,
-            rcvData: [0; 128],
-        };
-
-        println!(
-            "Attempting to send packet: {:02X?}, snd: {}, rcv: {}",
-            data, snd_len, rcv_len,
-        );
-
-        if let Err(e) = unsafe { proc_err(ffi::Gen2_GenericCmd(&mut cmd)) } {
-            println!(
-                "Failed to execute command ({}). Read bytes:\n{:02X?}",
-                e, &cmd.rcvData
-            );
-        }
-
-        println!(
-            "Read bytes {:02X?}",
-            &cmd.rcvData[..cmd.rcvDataLength as usize]
-        );
+        println!("Read bytes: {:0X?}", bytes);
 
         Ok(())
     }
