@@ -4,7 +4,7 @@
 use crate::data_types::*;
 use crate::error::{Error, Result};
 
-#[cfg(feature = "port_scanning")]
+#[cfg(feature = "port-scanning")]
 use serialport as sp;
 
 /// Main reader struct. See [`BasicReader`] for more usage.
@@ -24,7 +24,7 @@ unsafe impl BasicReader for Reader {}
 impl Reader {
     /// # Connecting to reader
     ///
-    /// Using [`Self::autoconnect()`] requires the `port_scanning` feature. This method scans
+    /// Using [`Self::autoconnect()`] requires the `port-scanning` feature. This method scans
     /// all available USB TTY/COM ports on the computer and checks their vendor & product
     /// ID's. Upon finding a port successfully, the [`Self::connect()`] method is automatically
     /// invoked.
@@ -35,11 +35,11 @@ impl Reader {
     /// # fn main() -> core::result::Result<(), Box<dyn std::error::Error>> {
     ///
     /// // automatically with port scanning
-    /// #[cfg(feature = "port_scanning")]
+    /// #[cfg(feature = "port-scanning")]
     /// let reader = Reader::autoconnect()?;
     ///
     /// // manually without port scanning
-    /// #[cfg(not(feature = "port_scanning"))]
+    /// #[cfg(not(feature = "port-scanning"))]
     /// let reader = Reader::connect("/dev/ttyUSB0")?;
     ///
     /// # Ok(())}
@@ -50,7 +50,7 @@ impl Reader {
     /// This function errors if the reader cannot be safely connected to. A [`Error::GeneralIo`]
     /// error may be issued if no valid ports can be found/opened. See [`Reader::connect()`] for
     /// more info.
-    #[cfg(feature = "port_scanning")]
+    #[cfg(feature = "port-scanning")]
     pub fn autoconnect() -> Result<Self> {
         let mut found_port: Option<String> = None;
 
