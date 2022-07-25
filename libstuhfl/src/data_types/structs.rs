@@ -408,6 +408,7 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_FreqHop> for FreqHopCfg {
     }
 }
 
+#[cfg_attr(feature = "use-serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, PartialEq, Clone)]
 /// Container for hexadecimal-based ID values such as TID, XPC, and EPC.
 pub struct HexID {

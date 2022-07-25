@@ -7,7 +7,7 @@ authors = ["Nathan Rowan <rvanathanrowan@gmail.com>"]
 build = "build.rs"
 
 [features]
-reader_tests = []
+reader-tests = []
 
 [dependencies]
 
@@ -16,5 +16,5 @@ cc = { version = "1.0", features = ["parallel"] }
 bindgen = "0.60"
 
 [dev-dependencies]
- # serialport is only needed for reader_tests, but dev-dependencies are not allowed to be optional
+ # serialport is only needed for reader-tests, but dev-dependencies are not allowed to be optional
 serialport = "4.2"

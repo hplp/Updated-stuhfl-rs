@@ -4,7 +4,7 @@
 #![allow(clippy::derivable_impls)]
 
 #[cfg(test)]
-#[cfg(feature = "reader_tests")]
+#[cfg(feature = "reader-tests")]
 extern crate serialport;
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
@@ -15,7 +15,7 @@ pub use initializers::*;
 #[cfg(test)]
 mod tests {
     #[test]
-    #[cfg(feature = "reader_tests")]
+    #[cfg(feature = "reader-tests")]
     fn connect_to_reader() {
         use super::*;
         use serialport as sp;
