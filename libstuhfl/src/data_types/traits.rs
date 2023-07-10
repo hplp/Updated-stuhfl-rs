@@ -197,6 +197,28 @@ pub unsafe trait BasicReader: Sized + ConnectionHolder {
     unsafe fn disconnect(&mut self) -> Result<()> {
         proc_err(ffi::Disconnect())
     }
+
+    /// # Adjusting antenna output power
+    fn set_antenna_power(&mut self, on: bool, timeout: u16, frequency: u32) -> Result<()> {
+        unsafe {
+            proc_err(ffi::Set_AntennaPower(
+                &mut ffi::STUHFL_T_ST25RU3993_AntennaPower {
+                    mode: on as u8,
+                    timeout,
+                    frequency,
+                },
+            ))
+        }
+    }
+
+    /// # Adjusting amplifier power configuration
+    fn set_power_amplifier_cfg(&mut self, external: bool) -> Result<()> {
+        unsafe {
+            proc_err(ffi::Set_PowerAmplifierCfg(
+                &mut ffi::STUHFL_T_ST25RU3993_PowerAmplifierCfg { external },
+            ))
+        }
+    }
 }
 
 /// Protocol-Specific reader commands. These include any commands that require
