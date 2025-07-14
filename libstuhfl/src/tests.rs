@@ -2,12 +2,23 @@ use crate::prelude::*;
 
 type TestResult = std::result::Result<(), Box<dyn std::error::Error>>;
 
+// CB 7/14/25: Some tests were marked with the #[serial] and #[cfg(feature = "reader-tests")] attributes
+//             For some reason, I started getting errors on them when I downloaded the 'rust-analyzer' extension in VS Code,
+//             so I commented them out. All tests can still be run just fine, but I could only use the debug feature
+//             after I commented them out. Still 'rust-analyzer' is a very useful extension.
+
 #[cfg(feature = "reader-tests")]
 extern crate serial_test;
 #[cfg(feature = "reader-tests")]
 use rand::prelude::*;
 #[cfg(feature = "reader-tests")]
 use serial_test::*;
+
+// CB 7/7/25: Testing 'parse()' function
+#[test]
+fn parse_test() {
+    let _list: [(u8, u8, u8); 50] = parse().unwrap();
+}
 
 #[test]
 fn version_comparison() {
@@ -80,13 +91,13 @@ fn check_reader_version() -> TestResult {
     Ok(())
 }
 
-#[cfg(feature = "reader-tests")]
+//#[cfg(feature = "reader-tests")]
 mod gen2 {
     use super::*;
     use crate::gen2::*;
 
     #[test]
-    #[serial]
+    //#[serial]
     fn configure() -> TestResult {
         let reader = Reader::autoconnect()?;
 
@@ -104,6 +115,11 @@ mod gen2 {
     fn inventory_once() -> TestResult {
         let reader = Reader::autoconnect()?;
 
+        // CB 7/14/25: Most of the reader settings come from this config line
+        //             By using a debugger to step into this file, it shows that the configuration settings come from:
+        //             'gen2_structs.rs'
+        //             'structs.rs'
+        //             When looking to change default build settings for the reader, look to these files first.
         let gen2_config = Gen2Cfg::builder().build()?;
 
         let mut reader = reader.configure_gen2(&gen2_config)?;
@@ -122,7 +138,7 @@ mod gen2 {
     }
 
     #[test]
-    #[serial]
+    //#[serial]
     fn inventory_runner() -> TestResult {
         use std::sync::{Arc, Mutex};
 

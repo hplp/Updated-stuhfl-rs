@@ -1,3 +1,4 @@
+// All good
 //! Module pertaining to the Gen2 RFID protocol.
 
 /* Note: All of these submodules are

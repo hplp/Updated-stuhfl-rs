@@ -4,6 +4,11 @@ use crate::helpers::{item_list_to_ffi, profile_to_item_list};
 use enum_primitive::FromPrimitive;
 use std::fmt;
 
+// CB 7/14/25: Changing values found between double quotes "" changes default settings for the Gen2Cfg
+//             For example, on lines 123 and 126, you can change the numbers in the builder default section
+//             to alter the Tx and Rx levels
+
+
 /// Password for authentication during various protocol commands.
 /// For a list of which commands require/support password authentication,
 /// see [`ProtocolReader`].
@@ -21,6 +26,7 @@ use std::fmt;
 /// # Ok(())}
 /// ```
 #[derive(Copy, Clone)]
+// tuple struct with a 4 member u8 array
 pub struct Password([u8; 4]);
 
 impl Password {
@@ -31,6 +37,7 @@ impl Password {
     }
 }
 
+//converts array into Password type
 impl From<[u8; 4]> for Password {
     fn from(password: [u8; 4]) -> Self {
         Self(password)
@@ -108,15 +115,16 @@ impl fmt::Display for Version {
     }
 }
 
+// CB 6/30/25: changed default settings to match GUI
 #[derive(Builder, Copy, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
 /// Contains antenna configuration settings. See [`Self::builder()`] for details.
 pub struct TxRxCfg {
     /// Transmission output level (dB). See control register 3 for further info. Valid range [0dB..-19dB].
-    #[builder(default = "-2")]
+    #[builder(default = "0")] // default of -2
     tx_output_level: i8,
     /// Reciever sensitivity level (dB). Valid range [-17dB..+19dB].
-    #[builder(default = "-3")]
+    #[builder(default = "19")] // default of 3
     rx_sensitivity_level: i8,
     /// Antenna to be used.
     #[builder(default = "Antenna::Antenna1")]
@@ -294,6 +302,7 @@ impl Default for TuningCaps {
     }
 }
 
+// CB 7/9/25: Tuning cap values should come from values specified by the 'pasre()' function
 impl TuningCaps {
     /// Create tuning caps from manually-specified values.
     pub fn from(cin: u8, clen: u8, cout: u8) -> Self {
@@ -371,6 +380,8 @@ impl ChannelListCfg {
     }
 }
 
+// CB 7/9/25: Changing 'itemList:' might be the answer
+// I need to use 'parse()' to change the caps list
 impl AsFFI<ffi::STUHFL_T_ST25RU3993_ChannelList> for ChannelListCfg {
     fn as_ffi(&self) -> ffi::STUHFL_T_ST25RU3993_ChannelList {
         ffi::STUHFL_T_ST25RU3993_ChannelList {
@@ -378,6 +389,7 @@ impl AsFFI<ffi::STUHFL_T_ST25RU3993_ChannelList> for ChannelListCfg {
             itemList: item_list_to_ffi(&self.item_list), // TODO
             ..Default::default()
         }
+        //self.item_list[0].caps[0] = (0,0,0);
     }
 }
 
@@ -526,36 +538,52 @@ impl fmt::Display for InventoryTag {
 pub struct InventoryStatistics {
     /// Timestamp since last statistics update.
     pub timestamp: u32,
+
     /// Inventory rounds already complete.
     pub round_count: u32,
+
     /// Reader tuning status.
     pub tuning_status: TuningStatus,
+
     /// RSSI log mean value. Updated with each found tag.
     pub rssi_log_mean: u8,
+
     /// Reader sensitivity.
     pub sensitivity: i8,
+
     /// Current Q, may vary if adaptive Q is enabled.
     pub final_q: u8,
+
     /// Currently used frequency.
     pub frequency: u32,
+
     /// ADC value, measured between each round.
     pub adc: u16,
+
     /// Number of detected tags.
     pub tag_count: u32,
+
     /// Number of empty slots.
     pub empty_slot_count: u32,
+
     /// Number of executed slots.
     pub slot_count: u32,
+
     /// Number of collisions.
     pub collision_count: u32,
+
     /// Number of Header errors.
     pub preamble_err_count: u32,
+
     /// Number of CRC errors
     pub crc_err_count: u32,
+
     /// Number of RX count errorsnd due to error during EPC reception.
     pub rx_count_err_count: u32,
+
     /// Number of ACK resends due to error duing EPC reception.
     pub resend_ack_count: u32,
+
     /// Number of noise suspicon events.
     /// Event is triggered when ACK is resended and no response is recieved.
     pub noise_suspicion_count: u32,

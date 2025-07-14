@@ -12,6 +12,8 @@ pub(crate) trait AsFFI<T> {
     fn as_ffi(&self) -> T;
 }
 
+// CB 7/14/25: The gen2_config uses this builder to configure itself using default settings
+
 /// Returns a builder to create the structure
 pub trait Builder<T>
 where
@@ -199,6 +201,7 @@ pub unsafe trait BasicReader: Sized + ConnectionHolder {
     }
 
     /// # Adjusting antenna output power
+    // CB 6/19/25: could this be used to increase range?
     fn set_antenna_power(&mut self, on: bool, timeout: u16, frequency: u32) -> Result<()> {
         unsafe {
             proc_err(ffi::Set_AntennaPower(
@@ -210,7 +213,7 @@ pub unsafe trait BasicReader: Sized + ConnectionHolder {
             ))
         }
     }
-
+    
     /// # Adjusting amplifier power configuration
     fn set_power_amplifier_cfg(&mut self, external: bool) -> Result<()> {
         unsafe {
@@ -231,6 +234,7 @@ pub unsafe trait BasicReader: Sized + ConnectionHolder {
 /// (see [`BasicReader`]). Furthermore, all readers implementing this trait must
 /// be able to handle the full funcitonality defined in this trait.
 pub unsafe trait ProtocolReader: BasicReader {
+
     /// # Tuning reader
     ///
     /// Tune the reader using the specified tuning algorithm.

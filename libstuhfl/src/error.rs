@@ -1,4 +1,4 @@
-//! Module containing error type for create.
+//! Module containing error type for create. 
 
 use std::fmt;
 

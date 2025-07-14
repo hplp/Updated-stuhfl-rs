@@ -10,6 +10,7 @@ pub struct Gen2Reader {
     /// keeps track of whether or not the reader is tuned
     is_tuned: bool,
     /// manages connection to reader
+    // definiton found in: structs.rs
     connection: Connection,
 }
 
@@ -240,6 +241,7 @@ impl ConnectionHolder for Gen2Reader {
 unsafe impl BasicReader for Gen2Reader {}
 
 unsafe impl ProtocolReader for Gen2Reader {
+
     fn tune(&mut self, algo: TuningAlgorithm) -> Result<()> {
         // None does nothing
         if algo == TuningAlgorithm::None {
@@ -469,7 +471,7 @@ unsafe impl ProtocolReader for Gen2Reader {
     }
 }
 
-/// Wrapper for user specified callback funciton. This catches any unwind panics, and
+/// Wrapper for user specified callback function. This catches any unwind panics, and
 /// processes the inventory data from FFI form into Rust form.
 ///
 /// # Panics

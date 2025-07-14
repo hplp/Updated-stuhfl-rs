@@ -7,6 +7,93 @@ use crate::error::{Error, Result};
 #[cfg(feature = "port-scanning")]
 use serialport as sp;
 
+// CB 7/14/25: Imported for 'parse()' to use
+use std::fs::File;
+use std::io::{self, BufRead, BufReader};
+
+// CB 7/7/25: Added text parse function. This function is used to convert the 50-line text
+//            file 'GUI_Tuning_Results.txt' into an array of tuples. This array holds the
+//            capacitor values for Antenna 1 of the reader. The way the file is formatted is very specific.
+//            The text in the file comes from a single line of the ST GUI tuning result.
+//            There must be 50 lines in total, and each line starting with the number that labels the set of capacitors.
+//            There are 2 sets of capacitor values that correspond to the specific frequency (in MHz).
+//            The first set is for Antenna 1, the second for Antenna 2. If Antenna 2 is not being used,
+//            then the second set can be deleted, but it makes no difference either way.
+//
+//            File must be named 'GUI_Tuning_Results.txt' and be in the 'libstuhfl' folder
+
+/* GUI_Tuning_Results.txt Example
+0:{902750, (24,17,1), (9,19,15)}, 
+1:{915250, (25,17,0), (9,25,15)}, 
+2:{903250, (27,20,0), (9,19,15)}, 
+3:{915750, (25,17,0), (9,25,15)}, 
+4:{903750, (23,17,1), (9,19,15)}, 
+5:{916250, (11,7,2), (9,14,14)}, 
+6:{904250, (27,20,0), (9,19,15)}, 
+7:{916750, (25,17,0), (9,14,14)}, 
+8:{904750, (27,20,0), (9,19,15)}, 
+9:{917250, (9,6,1), (9,14,14)}, 
+.
+.
+.
+48:{914750, (25,18,0), (9,25,15)}, 
+49:{927250, (11,7,0), (9,30,15)},
+*/
+
+// CB 7/14/25: This function parses a text file to return an array
+//             of 50 tuples containing capacitor values for the reader
+
+pub(crate) fn parse() -> io::Result<[(u8, u8, u8); 50]> {
+    let mut a: String = String::from("");
+    let mut b: String = String::from("");
+    let mut c: String = String::from("");
+
+    let mut tracker: u8 = 0;
+    let mut counter = 0;
+    let mut caps: [(u8, u8, u8); 50] = [(0, 0, 0); 50];
+
+    let file: File = File::open("GUI_Tuning_Results.txt")?;
+    let reader: BufReader<File> = BufReader::new(file);
+
+    for line in reader.lines() {
+        let line: String = line?;
+
+        for _char in line.chars() {
+            if tracker == 1 && _char != ')' && _char != ',' {
+                a.push(_char);
+            } else if tracker == 2 && _char != ')' && _char != ',' {
+                b.push(_char);
+            } else if tracker == 3 && _char != ')' && _char != ',' {
+                c.push(_char);
+            }
+
+            if _char == '(' {
+                tracker += 1;
+            } else if _char == ',' && tracker > 0 {
+                tracker += 1;
+            }
+
+            if tracker > 3 {
+                break;
+            }
+        }
+
+        caps[counter].0 = a.trim().parse::<u8>().unwrap();
+        caps[counter].1 = b.trim().parse::<u8>().unwrap();
+        caps[counter].2 = c.trim().parse::<u8>().unwrap();
+        tracker = 0;
+        a = String::from("");
+        b = String::from("");
+        c = String::from("");
+        counter += 1;
+    }
+
+    Ok(caps)
+    //caps
+}
+
+//
+
 /// Main reader struct. See [`BasicReader`] for more usage.
 pub struct Reader {
     /// Holds connection

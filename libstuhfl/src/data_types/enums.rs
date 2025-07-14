@@ -1,5 +1,13 @@
 use super::structs::*;
+
+//fmt is used for the format! macro
 use std::fmt;
+
+// enum_from_primitive! wraps an enum declaration and automatically adds an implementation
+// of num::FromPrimitive to allow conversion from primitive integers to the enum.
+
+// FFI imports foreign functions through the C code from the Vendor.
+// The 'vendor' folder holds all of the referenced code.
 
 enum_from_primitive! {
     #[derive(Copy, Clone, PartialEq, Debug)]
@@ -8,6 +16,7 @@ enum_from_primitive! {
     /// See ST25RU3993 manual for details.
     pub enum Antenna {
         /// Antenna 1 (default).
+        // defined in stuhfl_dl_ST25RU3993.h
         Antenna1 = ffi::STUHFL_D_ANTENNA_1 as u8,
         /// Antenna 2.
         Antenna2 = ffi::STUHFL_D_ANTENNA_2 as u8,
@@ -18,6 +27,11 @@ enum_from_primitive! {
     }
 }
 
+// Displays which antenna is being used using a 'match' statement
+// fmt used for formatting
+
+// INPUTS: Antenna enum, fmt formatter struct
+// OUTPUTS: fmt Result
 impl fmt::Display for Antenna {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -40,6 +54,7 @@ enum_from_primitive! {
     /// See [`ChannelListCfg`] for details.
     pub enum Profile {
         /// European profile
+        // defined in stuhfl_dl_ST25RU3993.h
         Europe = ffi::STUHFL_D_PROFILE_EUROPE as u8,
         /// United states profile
         Usa = ffi::STUHFL_D_PROFILE_USA as u8,
@@ -49,6 +64,13 @@ enum_from_primitive! {
         China = ffi::STUHFL_D_PROFILE_CHINA as u8,
         /// Chinese profile (alternative)
         China2 = ffi::STUHFL_D_PROFILE_CHINA2 as u8,
+
+        // CB 7/10/25: Custom profile for using capacitor values from ST GUI tuning results
+        // CB 7/14/25: Adding this line creates a warning 
+        //             about 'missed documentation', but functionally nothing is wrong.
+
+
+        Custom = ffi::STUHFL_D_PROFILE_CUSTOM as u8,
     }
 }
 
@@ -57,11 +79,15 @@ enum_from_primitive! {
     #[repr(u8)]
     /// Different types of tuning algorithms. The faster
     /// algorithms are generally less accurate.
+
+
     pub enum TuningAlgorithm {
         /// # No tuning algorithm.
         ///
         /// This algorithm simply leaves the reader untuned (not recommended). Use [`TuningAlgorithm::Fast`]
         /// if you really need to avoid the performance penalty from tuning.
+
+        // defined in stuhfl_dl_ST25RU3993.h
         None = ffi::STUHFL_D_TUNING_ALGO_NONE as u8,
         /// # Simple automatic tuning function.
         ///

@@ -1,6 +1,6 @@
 use super::structs::*;
 
-/// Function type to be used with inventory_runner
+/// Function type to be used with inventory_runner 
 pub type CallbackFn = dyn Fn(InventoryTag) + Send;
 
 /// HexID type to be used only for XPC numbers.
