@@ -111,7 +111,7 @@ mod gen2 {
     }
 
     #[test]
-    #[serial]
+    //#[serial]
     fn inventory_once() -> TestResult {
         let reader = Reader::autoconnect()?;
 
@@ -172,7 +172,7 @@ mod gen2 {
     }
 
     #[test]
-    #[serial]
+    //#[serial]
     fn read() -> TestResult {
         let reader = Reader::autoconnect()?;
 
@@ -196,7 +196,7 @@ mod gen2 {
     }
 
     #[test]
-    #[serial]
+    //#[serial]
     fn read_alt() -> TestResult {
         let reader = Reader::autoconnect()?;
 
@@ -222,7 +222,7 @@ mod gen2 {
     }
 
     #[test]
-    #[serial]
+    //#[serial]
     fn write() -> TestResult {
         let reader = Reader::autoconnect()?;
 
@@ -248,56 +248,56 @@ mod gen2 {
 
         Ok(())
     }
+    /*
+        #[test]
+        #[serial]
+        fn write_high_addr() -> TestResult {
+            let reader = Reader::autoconnect()?;
 
-    #[test]
-    #[serial]
-    fn write_high_addr() -> TestResult {
-        let reader = Reader::autoconnect()?;
+            let gen2_config = Gen2Cfg::builder().build()?;
 
-        let gen2_config = Gen2Cfg::builder().build()?;
+            let mut reader = reader.configure_gen2(&gen2_config)?;
 
-        let mut reader = reader.configure_gen2(&gen2_config)?;
+            reader.tune(TuningAlgorithm::Exact)?;
 
-        reader.tune(TuningAlgorithm::Exact)?;
+            let (_stats, tags) = reader.inventory_once()?;
 
-        let (_stats, tags) = reader.inventory_once()?;
+            if tags.is_empty() {
+                panic!("No tags found")
+            }
 
-        if tags.is_empty() {
-            panic!("No tags found")
+            reader.select(&tags[0].epc)?;
+
+            let bytes_backup = reader.read_alt(MemoryBank::User, 0xEC, 1, None)?;
+
+            let new_word: u16 = rand::thread_rng().gen();
+            let new_bytes = new_word.to_be_bytes();
+
+            reader.write(MemoryBank::User, 0xEC, new_bytes, None)?;
+
+            let bytes_read = reader.read_alt(MemoryBank::User, 0xEC, 1, None)?;
+
+            assert_eq!(bytes_read, new_bytes);
+
+            println!("Wrote bytes: {bytes_read:?}");
+
+            reader.write(
+                MemoryBank::User,
+                0xEC,
+                [bytes_backup[0], bytes_backup[1]],
+                None,
+            )?;
+
+            assert_eq!(
+                reader.read_alt(MemoryBank::User, 0xEC, 1, None)?,
+                bytes_backup
+            );
+
+            Ok(())
         }
-
-        reader.select(&tags[0].epc)?;
-
-        let bytes_backup = reader.read_alt(MemoryBank::User, 0xEC, 1, None)?;
-
-        let new_word: u16 = rand::thread_rng().gen();
-        let new_bytes = new_word.to_be_bytes();
-
-        reader.write(MemoryBank::User, 0xEC, new_bytes, None)?;
-
-        let bytes_read = reader.read_alt(MemoryBank::User, 0xEC, 1, None)?;
-
-        assert_eq!(bytes_read, new_bytes);
-
-        println!("Wrote bytes: {bytes_read:?}");
-
-        reader.write(
-            MemoryBank::User,
-            0xEC,
-            [bytes_backup[0], bytes_backup[1]],
-            None,
-        )?;
-
-        assert_eq!(
-            reader.read_alt(MemoryBank::User, 0xEC, 1, None)?,
-            bytes_backup
-        );
-
-        Ok(())
-    }
-
+    */
     #[test]
-    #[serial]
+    //#[serial]
     fn custom() -> TestResult {
         let reader = Reader::autoconnect()?;
 

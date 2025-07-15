@@ -8,7 +8,6 @@ use std::fmt;
 //             For example, on lines 123 and 126, you can change the numbers in the builder default section
 //             to alter the Tx and Rx levels
 
-
 /// Password for authentication during various protocol commands.
 /// For a list of which commands require/support password authentication,
 /// see [`ProtocolReader`].
@@ -178,7 +177,8 @@ pub struct AutoTuning {
     #[builder(default = "20")]
     level: u8,
     /// Algorithm to use for automatic tuning
-    #[builder(default = "TuningAlgorithm::Fast")]
+    // CB 7/15/25: Changed default tuning algorithm to 'Exact'
+    #[builder(default = "TuningAlgorithm::Exact")]
     algo: TuningAlgorithm,
     /// Do false positive detection check
     #[builder(default = "true")]

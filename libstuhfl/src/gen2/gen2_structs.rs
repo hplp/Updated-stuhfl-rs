@@ -2,7 +2,7 @@ use super::gen2_enums::*;
 use crate::data_types::*;
 use crate::ffi;
 
-// CB 7/14/25: Similar to 'structs.rs', this file holds default settings that can be 
+// CB 7/14/25: Similar to 'structs.rs', this file holds default settings that can be
 //             altered to change the Gen2Cfg configuration. For example, on line 290:
 //
 //             #[builder(default = "ChannelListCfg::from_profile(Profile::Custom)")]

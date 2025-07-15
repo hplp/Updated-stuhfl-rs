@@ -1,5 +1,7 @@
 use super::*;
 
+// This files makes a lot of instances of various structs
+// These functions return default 'self's
 impl Default for STUHFL_T_ST25RU3993_Register {
     fn default() -> Self {
         Self { addr: 0, data: 0 }
@@ -47,19 +49,19 @@ impl Default for STUHFL_T_ST25RU3993_AntennaPower {
         }
     }
 }
-
+//CB 6/19/25: Attempt to change settings to match ST App
 impl Default for STUHFL_T_ST25RU3993_TxRxCfg {
     fn default() -> Self {
         Self {
-            txOutputLevel: -2,
-            rxSensitivity: 3,
+            txOutputLevel: -2, // '0' to match ST App, '-2' default
+            rxSensitivity: 3,  // '19' to match ST App, '3' default
             usedAntenna: STUHFL_D_ANTENNA_1 as u8,
             alternateAntennaInterval: 1,
             rfu: 3,
         }
     }
 }
-
+//
 impl Default for STUHFL_T_ST25RU3993_Gen2_InventoryOption {
     fn default() -> Self {
         Self {
@@ -200,6 +202,7 @@ impl Default for STUHFL_T_ST25RU3993_ChannelItem {
     }
 }
 
+// CB 7/9/25: Attempt changes caps for antenna 1 to match GUI Results
 impl STUHFL_T_ST25RU3993_ChannelItem {
     #[allow(clippy::type_complexity)]
     fn from_raw(raw: (u32, ((u8, u8, u8), (u8, u8, u8)), u8, u8)) -> Self {
@@ -236,7 +239,7 @@ impl Default for STUHFL_T_ST25RU3993_ChannelList {
 
 impl STUHFL_T_ST25RU3993_ChannelList {
     pub fn from_profile(profile: u8) -> Self {
-        let mut list = Self::default();
+        let mut list: STUHFL_T_ST25RU3993_ChannelList = Self::default();
 
         match profile as u32 {
             STUHFL_D_PROFILE_EUROPE => {

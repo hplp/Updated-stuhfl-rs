@@ -90,7 +90,6 @@ enum_from_primitive! {
 /// there will be slot collisions. If it's too big, there will be overhead.
 pub enum Gen2AdaptiveQ {
     /// Enable AdaptiveQ Algorithm (default)
-    // Gen2AdaptiveQCfg is from gen2_structs. I'm assumign it uses the default parameters set in the struct
     Enable(Gen2AdaptiveQCfg),
     /// Set manual Q
     Disable(u8),
