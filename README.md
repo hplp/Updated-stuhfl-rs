@@ -1,0 +1,1 @@
+Updated version of "stuhfl-rs". This update includes more descriptive comments, changed TxRx settings, frequencies matched to the ST GUI, and manually tuned caps from the ST GUI. Instructions for manually importing tuning results from the ST GUI can be found in the .docx file "Rust Code Cap Import Tutorial".
